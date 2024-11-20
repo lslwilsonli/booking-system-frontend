@@ -2,20 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  color: var(--foreground);
-  background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.participantBox {
+  @apply border-2 my-10 text-xl rounded-md border-black;
+}
+
+.infoTitle {
+  @apply whitespace-nowrap text-xs font-bold opacity-60 leading-6;
+}
+
+.infoValue {
+  @apply col-start-1 whitespace-nowrap text-2xl font-medium;
 }
