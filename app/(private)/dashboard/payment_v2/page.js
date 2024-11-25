@@ -122,7 +122,7 @@ export function AnotherTable({ data, isLoading }) {
   async function updateDatabase(_id, newStatus) {
     try {
       const response = await fetch(
-        "http://localhost:3030/update-payment-status2",
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/update-payment-status2`,
         {
           method: "POST",
           headers: {
@@ -565,13 +565,16 @@ const Payment = () => {
   const getPaymentFromDatabase = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:3030/get-payment-info", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-type": "application/json",
-        },
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/get-payment-info`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-type": "application/json",
+          },
+        }
+      );
       if (res.ok) {
         console.log("Test OK");
         const result = await res.json();

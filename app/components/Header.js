@@ -65,7 +65,7 @@ function Header() {
               </div>
             </Link>
           ) : (
-            <div className="btn btn-ghost text-xl">
+            <Link href="/home" className="btn btn-ghost text-xl">
               <div className="flex flex-row items-center">
                 <img
                   className="w-20 h-auto"
@@ -78,7 +78,7 @@ function Header() {
                   </span>
                 </div>
               </div>
-            </div>
+            </Link>
           )}
         </div>
         {/* theme control list */}
