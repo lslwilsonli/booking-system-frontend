@@ -938,7 +938,13 @@ const ProgramInfo = () => {
                                   );
                                 })}
                             </div>
-                            {uploadImage && <ImageUpload prog_id={_id} />}
+                            {uploadImage && (
+                              <ImageUpload
+                                prog_id={_id}
+                                programInfo={programInfo}
+                                setProgramInfo={setProgramInfo}
+                              />
+                            )}
                           </div>
                         </>
                       ) : (

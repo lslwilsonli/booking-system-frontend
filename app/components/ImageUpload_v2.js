@@ -97,10 +97,10 @@ const ImageUpload = ({ prog_id, programInfo, setProgramInfo }) => {
 
             setLinkSuccess("Successfully uploaded");
             setLink("");
-            // setProgramInfo((prev) => ({
-            //   ...prev,
-            //   program_image: [...prev.program_image, data.imageURL],
-            // }));
+            setProgramInfo((prev) => ({
+              ...prev,
+              program_image: [...prev.program_image, data.imageURL],
+            }));
           } else {
             setLinkError("Unable to connect to server");
           }
@@ -163,6 +163,10 @@ const ImageUpload = ({ prog_id, programInfo, setProgramInfo }) => {
 
         const data = await response.json();
         console.log("Image sent successfully!", data);
+        setProgramInfo((prev) => ({
+          ...prev,
+          program_image: [...prev.program_image, data.imageURL],
+        }));
         setSuccess("Picture uploaded successfully");
         setFile(null);
         setFilePath("");

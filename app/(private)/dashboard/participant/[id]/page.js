@@ -411,6 +411,7 @@ const ParticipantInfo = () => {
                         value={telephone_no}
                         onChange={handleParticipantEdit}
                         className="input input-bordered input-sm w-60 max-w-xs mb-1"
+                        maxLength={8}
                       />
                     </div>
                     <div className="flex items-top mb-4">
@@ -489,14 +490,26 @@ const ParticipantInfo = () => {
                   <div key={programInfo._id + "-" + sessionInfo._id}>
                     <div className="flex items-center justify-between">
                       <p className="infoTitle">Program Name:</p>
-                      <button
-                        className="btn btn-sm w-16 btn-error"
-                        onClick={() =>
-                          handleRemoveEnrolledSession(sessionInfo._id)
-                        }
-                      >
-                        Remove
-                      </button>
+                      {programDataPackage.length === 1 ? (
+                        <button
+                          disabled
+                          className="btn btn-sm w-16 btn-error "
+                          onClick={() =>
+                            handleRemoveEnrolledSession(sessionInfo._id)
+                          }
+                        >
+                          Remove
+                        </button>
+                      ) : (
+                        <button
+                          className="btn btn-sm w-16 btn-error"
+                          onClick={() =>
+                            handleRemoveEnrolledSession(sessionInfo._id)
+                          }
+                        >
+                          Remove
+                        </button>
+                      )}
                     </div>
                     <p className="mb-3 ml-10 mt-2">
                       {programInfo.program_name_zh}
