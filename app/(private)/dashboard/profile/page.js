@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import Loading from "@/app/components/Loading";
 import UpdateInfo from "@/app/components/UpdateInfo";
 import UpdatePaymentInfo from "@/app/components/UpdatePaymentInfo";
+import Toast from "@/app/components/Toast";
 
 import Link from "next/link";
 
@@ -21,10 +22,16 @@ const Profile = () => {
 
   const [newPaymentDetail, setNewPaymentDetail] = useState({});
 
+  const [merchantId, setMerchantId] = useState();
+
+  const bookingURL = process.env.NEXT_PUBLIC_FRONTEND_API;
+
   useEffect(() => {
     const fetchProfileData = async () => {
       const token = localStorage.getItem("token");
-      // console.log("Frontend Token:", token);
+      const decoded = jwt.decode(token);
+      // console.log("Frontend decoded:", decoded.payload.merchant_id);
+      setMerchantId(decoded.payload.merchant_id);
 
       // check if his has the token (that mean if he is login)
       // if (!token) {
@@ -174,6 +181,17 @@ const Profile = () => {
     return password.length < 8 || !passwordRegex.test(password);
   };
 
+  function copyToClipboard(id) {
+    navigator.clipboard
+      .writeText(id)
+      .then(() => {
+        Toast(`Booking URL Link Copied!`, "success");
+      })
+      .catch((err) => {
+        console.error("Failed to copy: ", err);
+      });
+  }
+
   return (
     <>
       {/* --------------------------------------Page title----------------------------------- */}
@@ -196,18 +214,29 @@ const Profile = () => {
       <div className="flex justify-center">
         <div className="mt-2 stats stats-vertical lg:stats-horizontal shadow-md w-11/12">
           <div className="stat">
-            <div className="flex">
+            <div className="flex mb-2">
               <div className="stat-title pl-10 w-60">Username:</div>
-              <div className="infoValue">{userData.merchant_username}</div>
+              <div className="infoValue ml-1">{userData.merchant_username}</div>
             </div>
-            <div className="flex">
+            <div className="flex mb-2">
               <div className="stat-title pl-10 w-60">Email:</div>
-              <div className="infoValue">{userData.merchant_email || "-"}</div>
+              <div className="infoValue ml-1">
+                {userData.merchant_email || "-"}
+              </div>
             </div>
-            <div className="flex">
+            <div className="flex mb-2">
               <div className="stat-title pl-10 w-60">Phone Number:</div>
+              <div className="infoValue ml-1">{userData.telephone_no}</div>
+            </div>
+            <div className="flex mb-2">
+              <div className="stat-title pl-10 w-60">Booking URL Link:</div>
               <div className="infoValue text-center">
-                {userData.telephone_no}
+                <button
+                  className={"btn btn-sm btn-accent mb-3"}
+                  onClick={() => copyToClipboard(`${bookingURL}/${merchantId}`)}
+                >
+                  Copy to Clipboard
+                </button>
               </div>
             </div>
           </div>
