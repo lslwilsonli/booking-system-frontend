@@ -10,13 +10,16 @@ const Payment = () => {
   const handleOnClick = async () => {
     console.log("I am clicked");
     try {
-      const res = await fetch("http://localhost:3030/get-payment-info", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-type": "application/json",
-        },
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/get-payment-info`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-type": "application/json",
+          },
+        }
+      );
       if (res.ok) {
         console.log("Test OK");
         const receivedData = await res.json();

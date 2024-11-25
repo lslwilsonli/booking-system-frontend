@@ -10,6 +10,9 @@ const UpdateInfo = ({ userData, onUpdateUserData }) => {
   const [errors, setErrors] = useState({});
   const router = useRouter();
 
+  const [phoneSuccess, setPhoneSuccess] = useState("");
+  const [emailSuccess, setEmailSuccess] = useState("");
+
   const handleOnChange = (ev) => {
     const { name, value } = ev.target;
     if (name === "email") {
@@ -22,30 +25,36 @@ const UpdateInfo = ({ userData, onUpdateUserData }) => {
 
   const handleEmailOnSubmit = async () => {
     setEmailError("");
+    setEmailSuccess("");
+    let emailErr = "";
     if (!newEmail) {
-      setEmailError("Email Address cannot be empty");
+      emailErr = "Email Address cannot be empty";
     } else {
       const formatError = checkEmailFormat(newEmail);
       if (formatError) {
-        setEmailError(formatError);
+        emailErr = formatError;
       }
     }
 
-    if (!emailError) {
+    if (!emailErr) {
       try {
-        const res = await fetch("http://localhost:3030/update-email", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: newEmail,
-            username: userData.merchant_username,
-          }),
-        });
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_API}/update-email`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: newEmail,
+              username: userData.merchant_username,
+            }),
+          }
+        );
         if (res.ok) {
           onUpdateUserData({ merchant_email: newEmail });
-          setEmailError("Successful to update email address");
+          // setEmailError("Successful to update email address");
+          setEmailSuccess("Successfully updated email address");
         } else if (res.status === 406) {
           setEmailError("Duplicate Email");
         } else {
@@ -54,42 +63,49 @@ const UpdateInfo = ({ userData, onUpdateUserData }) => {
       } catch (error) {
         console.log(error);
       }
+    } else {
+      setEmailError(emailErr);
     }
   };
 
   const handlePhoneOnSubmit = async () => {
     setPhoneError(""); // Initialize the error
+    setPhoneSuccess("");
+    let phoneErr = "";
+
     console.log("HAHA", newPhoneNumber);
     if (!newPhoneNumber) {
-      setPhoneError("Phone number cannot be empty");
+      phoneErr = "Phone number cannot be empty";
     } else if (newPhoneNumber === userData.telephone_no) {
-      setPhoneError(
-        "New phone number cannot be as same as the current phone number"
-      );
+      phoneErr =
+        "New phone number cannot be as same as the current phone number";
     } else {
       const formatError = checkPhoneFormat(newPhoneNumber);
       if (formatError) {
-        setPhoneError(formatError);
+        phoneErr = formatError;
       }
     }
 
     console.log("The error now is ", phoneError);
 
-    if (!phoneError) {
+    if (!phoneErr) {
       try {
-        const res = await fetch("http://localhost:3030/update-phone-number", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            phoneNumber: newPhoneNumber,
-            username: userData.merchant_username,
-          }),
-        });
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_API}/update-phone-number`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              phoneNumber: newPhoneNumber,
+              username: userData.merchant_username,
+            }),
+          }
+        );
         if (res.ok) {
           onUpdateUserData({ telephone_no: newPhoneNumber });
-          setPhoneError("Successful to update phone number");
+          setPhoneSuccess("Successful to update phone number");
         } else if (res.status === 406) {
           setPhoneError("Duplicate Number");
         } else {
@@ -99,6 +115,7 @@ const UpdateInfo = ({ userData, onUpdateUserData }) => {
         console.log(error);
       }
     } else {
+      setPhoneError(phoneErr);
       console.log("reach here 3");
     }
   };
@@ -153,11 +170,16 @@ const UpdateInfo = ({ userData, onUpdateUserData }) => {
         />
       </div>
 
-      <button className="btn mt-2" type="button" onClick={handleEmailOnSubmit}>
+      <button
+        className="btn btn-primary mt-2"
+        type="button"
+        onClick={handleEmailOnSubmit}
+      >
         Change Email
       </button>
       <div className="ErrorLabel" style={{ height: "24px" }}>
         {emailError && <span className="text-red-500">{emailError}</span>}
+        {emailSuccess && <span className="text-green-500">{emailSuccess}</span>}
       </div>
       <div>
         <p>New Phone Number</p>
@@ -169,11 +191,16 @@ const UpdateInfo = ({ userData, onUpdateUserData }) => {
           placeholder="Type here"
         />
       </div>
-      <button className="btn mt-2" type="button" onClick={handlePhoneOnSubmit}>
+      <button
+        className="btn btn-primary mt-2"
+        type="button"
+        onClick={handlePhoneOnSubmit}
+      >
         Change Phone Number
       </button>
-      <div className="ErrorLabel" style={{ height: "24px" }}>
+      <div className="ErrorLabel" style={{ height: "24px", width: "208px" }}>
         {phoneError && <span className="text-red-500">{phoneError}</span>}
+        {phoneSuccess && <span className="text-green-500">{phoneSuccess}</span>}
       </div>
     </>
   );

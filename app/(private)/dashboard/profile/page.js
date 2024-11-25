@@ -2,19 +2,21 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import jwt from "jsonwebtoken";
-import Loading from "../../components/Loading";
-import UpdateInfo from "../../components/UpdateInfo";
-import UpdatePaymentInfo from "../../components/UpdatePaymentInfo";
+import Loading from "@/app/components/Loading";
+import UpdateInfo from "@/app/components/UpdateInfo";
+import UpdatePaymentInfo from "@/app/components/UpdatePaymentInfo";
 
 import Link from "next/link";
 
 const Profile = () => {
   const [userData, setUserData] = useState(null);
   const [error, setError] = useState(null);
+
   const [oldPw, setOldPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmedPw, setConfirmedPw] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
   const router = useRouter();
 
   const [newPaymentDetail, setNewPaymentDetail] = useState({});
@@ -38,12 +40,15 @@ const Profile = () => {
         //   return;
         // }
 
-        const response = await fetch("http://localhost:3030/profile", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_API}/profile`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         console.log("Profile fetch response:", response);
         // setIsLogin(response.ok);
@@ -89,22 +94,26 @@ const Profile = () => {
   };
 
   const handleOnSubmit = async () => {
+    setPasswordSuccess("");
     if (!(oldPw && newPw && confirmedPw)) {
-      setPasswordError("Please enter all information");
+      setPasswordError("Please enter all the fields first");
       return;
     }
 
     try {
-      const res = await fetch("http://localhost:3030/verify-password", {
-        method: "POST",
-        body: JSON.stringify({
-          password: oldPw,
-          username: userData.merchant_username,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/verify-password`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            password: oldPw,
+            username: userData.merchant_username,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!res.ok) {
         setPasswordError(
@@ -112,7 +121,7 @@ const Profile = () => {
         );
       } else if (checkPasswordFormat(confirmedPw)) {
         setPasswordError(
-          "Password must be at least 8 characters and contain at least one English letter and number"
+          "The password must contain at least one numeric character, one lower letter and one upper case letter"
         );
       } else if (oldPw === confirmedPw) {
         setPasswordError(
@@ -125,7 +134,8 @@ const Profile = () => {
       } else {
         const res = await updatePassword(newPw);
         if (res.ok) {
-          setPasswordError("Password has been updated");
+          setPasswordError("");
+          setPasswordSuccess("Password has been updated");
           setOldPw("");
           setNewPw("");
           setConfirmedPw("");
@@ -140,16 +150,19 @@ const Profile = () => {
 
   const updatePassword = async (password) => {
     try {
-      const res = await fetch("http://localhost:3030/update-password", {
-        method: "POST",
-        body: JSON.stringify({
-          password: newPw,
-          username: userData.merchant_username,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/update-password`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            password: newPw,
+            username: userData.merchant_username,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
       return res;
     } catch (error) {
       console.log(error);
@@ -157,7 +170,7 @@ const Profile = () => {
   };
 
   const checkPasswordFormat = (password) => {
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
     return password.length < 8 || !passwordRegex.test(password);
   };
 
@@ -177,34 +190,44 @@ const Profile = () => {
       </div>
       {/* --------------------------------分隔個條線--------------------------- */}
       <div className="flex w-full flex-col">
-        <div className="divider divider-primary mt-1 mb-1"></div>
+        <div className="divider divider-secondary mt-1 mb-1"></div>
       </div>
       {/* -------------------data----------------------------- */}
       <div className="flex justify-center">
-        <div className="mt-2 stats stats-vertical lg:stats-horizontal shadow w-11/12">
-          <div className="stat pl-16">
-            <div className="stat-title">Username:</div>
-            <div className="infoValue text-center">
-              {userData.merchant_username}
+        <div className="mt-2 stats stats-vertical lg:stats-horizontal shadow-md w-11/12">
+          <div className="stat">
+            <div className="flex">
+              <div className="stat-title pl-10 w-60">Username:</div>
+              <div className="infoValue">{userData.merchant_username}</div>
             </div>
-            <div className="stat-title">Email:</div>
-            <div className="infoValue text-center">
-              {userData.merchant_email}
+            <div className="flex">
+              <div className="stat-title pl-10 w-60">Email:</div>
+              <div className="infoValue">{userData.merchant_email || "-"}</div>
             </div>
-            <div className="stat-title">Phone Number:</div>
-            <div className="infoValue text-center">{userData.telephone_no}</div>
+            <div className="flex">
+              <div className="stat-title pl-10 w-60">Phone Number:</div>
+              <div className="infoValue text-center">
+                {userData.telephone_no}
+              </div>
+            </div>
           </div>
 
-          <div className="stat pl-16">
-            <div className="stat-title">Company:</div>
-            <div className="infoValue text-center">{userData.organization}</div>
-            <div className="stat-title">FPS Number:</div>
-            <div className="infoValue text-center">
-              {userData.payment_number?.fps || "Not provided"}
+          <div className="stat">
+            <div className="flex">
+              <div className="stat-title pl-10 w-60">Company:</div>
+              <div className="infoValue">{userData.organization}</div>
             </div>
-            <div className="stat-title">PayMe Number:</div>
-            <div className="infoValue text-center">
-              {userData.payment_number?.payme || "Not provided"}
+            <div className="flex">
+              <div className="stat-title pl-10 w-60">FPS Number:</div>
+              <div className="infoValue text-center">
+                {userData.payment_number?.fps || "Not provided"}
+              </div>
+            </div>
+            <div className="flex">
+              <div className="stat-title pl-10 w-60">PayMe Number:</div>
+              <div className="infoValue text-center">
+                {userData.payment_number?.payme || "Not provided"}
+              </div>
             </div>
           </div>
         </div>
@@ -232,6 +255,7 @@ const Profile = () => {
                 <input
                   name="old"
                   value={oldPw}
+                  type="password"
                   onChange={handleOnChange}
                   className="input input-bordered input-sm w-full max-w-xs mb-6"
                   placeholder="Type here"
@@ -242,6 +266,7 @@ const Profile = () => {
                 <input
                   name="new"
                   value={newPw}
+                  type="password"
                   onChange={handleOnChange}
                   className="input input-bordered input-sm w-full max-w-xs"
                   placeholder="Type here"
@@ -252,6 +277,7 @@ const Profile = () => {
                 <input
                   name="confirmed"
                   value={confirmedPw}
+                  type="password"
                   onChange={handleOnChange}
                   className="input input-bordered input-sm w-full max-w-xs"
                   placeholder="Type here"
@@ -259,23 +285,33 @@ const Profile = () => {
               </div>
 
               <button
-                className="btn mt-2"
+                className="btn btn-primary mt-2"
                 type="button"
                 onClick={handleOnSubmit}
               >
                 Change Password
               </button>
               {passwordError && (
-                <div className="text-red-500">{passwordError}</div>
+                <div className="text-red-500" style={{ width: "260px" }}>
+                  {passwordError}
+                </div>
+              )}
+              {passwordSuccess && (
+                <div className="text-green-500">{passwordSuccess}</div>
               )}
             </div>
           </div>
-        </div>
-        <div className="flex">
-          <UpdatePaymentInfo
-            userData={userData}
-            onUpdateUserData={handleUpdateUserData}
-          />
+          <div>
+            <div className="flex mb-4 stat-title ml-10">
+              Update Payment Details:
+            </div>
+            <div className="flex ml-10 mt-4">
+              <UpdatePaymentInfo
+                userData={userData}
+                onUpdateUserData={setUserData}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </>

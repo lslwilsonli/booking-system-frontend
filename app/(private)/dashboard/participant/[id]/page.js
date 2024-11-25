@@ -1,8 +1,29 @@
 "use client";
 import "../../../../globals.css";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Toast from "@/app/components/Toast";
+
+function formatDateToLocal(dateString) {
+  const date = new Date(dateString);
+
+  // 檢查日期是否有效
+  if (isNaN(date.getTime())) {
+    return "Invalid date";
+  }
+
+  const day = String(date.getDate()).padStart(2, "0"); // 補零
+  const month = String(date.getMonth() + 1).padStart(2, "0"); // 補零
+  const year = date.getFullYear();
+  const hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0"); // 補零
+  const period = hours >= 12 ? "pm" : "am";
+  const formattedHours = hours % 12 === 0 ? 12 : hours % 12; // 12小時格式
+  const weekday = date.toLocaleString("en", { weekday: "short" });
+
+  return `${day}/${month}/${year} ${formattedHours}:${minutes}${period} (${weekday})`;
+}
 
 const ParticipantInfo = () => {
   const params = useParams();
@@ -12,9 +33,11 @@ const ParticipantInfo = () => {
   const { _id, participant_name, telephone_no, isEditing, merchants_remarks } =
     participant;
   const [sessionIds, setSessionIds] = useState([""]);
+  const [updateSessionErrorMsg, setUpdateSessionErrorMsg] = useState("");
+  const [updateSessionSuccessMsg, setUpdateSessionSuccessMsg] = useState("");
 
   if (!token) {
-    alert("No authorization token found.");
+    Toast("No authorization token found.", "error");
     return;
   }
 
@@ -24,19 +47,22 @@ const ParticipantInfo = () => {
 
   async function fetchParticipants() {
     try {
-      const result = await fetch(`http://localhost:3030/all-participants`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const result = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/all-participants`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       const participantsData = await result.json();
       const participantData = participantsData.filter(
         (participant) => participant._id === params.id
       );
 
       const sessionResult = await fetch(
-        "http://localhost:3030/get-programId-by-sessionId",
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/get-programId-by-sessionId`,
         {
           method: "POST",
           headers: { "Content-type": "application/json" },
@@ -49,7 +75,7 @@ const ParticipantInfo = () => {
       if (participantData.length > 0) {
         setParticipant(participantData[0]);
       } else {
-        alert("Participant not found.");
+        Toast("Participant not found.", "info");
       }
       setProgramDataPackage(sessionResultWithProgramId);
     } catch (err) {
@@ -60,7 +86,7 @@ const ParticipantInfo = () => {
   async function updateParticipantInfo() {
     try {
       const updateResult = await fetch(
-        `http://localhost:3030/update-participant-info`,
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/update-participant-info`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -71,7 +97,7 @@ const ParticipantInfo = () => {
           }),
           headers: {
             "Content-type": "application/json",
-            Authorization: `Bearer ${token}`, // 确保授权头正确
+            Authorization: `Bearer ${token}`,
           },
         }
       );
@@ -79,13 +105,48 @@ const ParticipantInfo = () => {
       const response = await updateResult.json();
 
       if (response.success) {
-        alert("Participant info updated successfully!");
+        Toast("Participant info updated successfully!", "success");
       } else {
-        alert("Failed to update participant info.");
+        Toast("Failed to update participant info!", "error");
       }
     } catch (err) {
       console.log(err);
-      alert("An error occurred while updating participant info.");
+      Toast("An error occurred while updating participant info!", "error");
+    }
+  }
+
+  async function updateParticipantInfo_session() {
+    try {
+      console.log("");
+      const updateParticipantSession = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/update-participant-info-session`,
+        {
+          body: JSON.stringify({
+            participantId: participant._id,
+            sessionIds,
+          }),
+          method: "POST",
+          headers: {
+            "Content-type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const res = await updateParticipantSession.json();
+      console.log("res.message", res.message);
+      if (!updateParticipantSession.ok) {
+        // 處理非200的響應
+        setUpdateSessionErrorMsg(res.message || "Update failed");
+        return;
+      }
+
+      setUpdateSessionSuccessMsg(
+        `${res.message}, added ${res.modifiedCount} session id`
+      );
+      fetchParticipants();
+    } catch (err) {
+      console.log("updateParticipantInfo_session", err);
+      setUpdateSessionErrorMsg("An unexpected error occurred");
     }
   }
 
@@ -100,17 +161,22 @@ const ParticipantInfo = () => {
   }
 
   function handleUpdateParticipantInfo() {
-    const response = prompt(
-      "Confirm to update? No revert can be made (input 'yes' if confirm))"
+    const response = Toast(
+      `Confirm to update? No revert can be made! (Input "Yes" to continue)`,
+      "warning",
+      {
+        withPrompt: true,
+        onPromptSubmit: (response) => {
+          if (response && response.toLowerCase() === "yes") {
+            setParticipant((prev) => ({
+              ...prev,
+              isEditing: !prev.isEditing,
+            }));
+            updateParticipantInfo();
+          }
+        },
+      }
     );
-    if (response && response.toLowerCase() === "yes") {
-      alert("saved updated changes");
-      setParticipant((prev) => ({
-        ...prev,
-        isEditing: !prev.isEditing,
-      }));
-    }
-    updateParticipantInfo();
   }
 
   function handleParticipantEdit(e) {
@@ -135,11 +201,15 @@ const ParticipantInfo = () => {
 
   const addSessionId = () => {
     setSessionIds([...sessionIds, ""]);
+    setUpdateSessionErrorMsg("");
+    setUpdateSessionSuccessMsg("");
   };
 
   const removeSessionId = () => {
     if (sessionIds.length > 1) {
       setSessionIds(sessionIds.slice(0, sessionIds.length - 1));
+      setUpdateSessionErrorMsg("");
+      setUpdateSessionSuccessMsg("");
     }
   };
 
@@ -149,7 +219,102 @@ const ParticipantInfo = () => {
       newSessionIds[index] = value;
       return newSessionIds;
     });
+    setUpdateSessionErrorMsg("");
+    setUpdateSessionSuccessMsg("");
   };
+
+  const handleUpdateSessions = () => {
+    setUpdateSessionSuccessMsg("");
+    setUpdateSessionErrorMsg("");
+    try {
+      const isValidObjectId = (id) => {
+        const objectIdRegex = /^[a-fA-F0-9]{24}$/;
+        return objectIdRegex.test(id);
+      };
+
+      // Session Id Object Id Validation
+      const invalidIds = sessionIds
+        .map((id, index) => (isValidObjectId(id) ? null : index + 1))
+        .filter((index) => index !== null); //
+
+      if (invalidIds.length > 0) {
+        const errorMessage =
+          invalidIds.length === 1
+            ? `Invalid Session Id found at: ${invalidIds[0]}`
+            : `Invalid Session Ids found at: ${invalidIds.join(", ")}`;
+        setUpdateSessionErrorMsg(errorMessage);
+        return;
+      }
+
+      // Session Id Object Id duplication checking
+      const nonDuplicatedSessionIds = [...new Set(sessionIds)];
+      if (nonDuplicatedSessionIds.length !== sessionIds.length) {
+        setUpdateSessionErrorMsg(`Session Ids are repeated, please check`);
+        return;
+      }
+      updateParticipantInfo_session();
+    } catch (err) {
+      console.log("handleUpdateSessions", err);
+    }
+  };
+
+  async function deleteEnrolledSession(sessionId) {
+    try {
+      const deleteEnrolledSession = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/delete-participant-enrolled-session`,
+        {
+          body: JSON.stringify({
+            participantId: participant._id,
+            sessionId,
+          }),
+          method: "DELETE",
+          headers: {
+            "Content-type": "application/json",
+          },
+        }
+      );
+      const res = await deleteEnrolledSession.json();
+      if (!deleteEnrolledSession.ok) {
+        console.log("deleteEnrolledSession error", res.message);
+        throw new Error(res.message);
+      }
+      fetchParticipants();
+    } catch (err) {
+      console.log("deleteEnrolledSession error", err);
+      throw err;
+    }
+  }
+
+  const handleRemoveEnrolledSession = (sessionId) => {
+    try {
+      const response = Toast(
+        `DELETE WARMING: Input "Yes" to confirm`,
+        "warning",
+        {
+          withPrompt: true,
+          onPromptSubmit: (response) => {
+            if (response && response.toLowerCase() === "yes") {
+              Toast("Changes Saved", "success");
+              deleteEnrolledSession(sessionId);
+            }
+          },
+        }
+      );
+    } catch (err) {
+      console.log("handleRemoveEnrolledSession", err);
+    }
+  };
+
+  function copyToClipboard(id) {
+    navigator.clipboard
+      .writeText(id)
+      .then(() => {
+        Toast(`Session Id ${id} copied to clipboard!`, "success");
+      })
+      .catch((err) => {
+        console.error("Failed to copy: ", err);
+      });
+  }
 
   return (
     <>
@@ -170,7 +335,7 @@ const ParticipantInfo = () => {
       </div>
       {/* --------------------------------分隔個條線--------------------------- */}
       <div className="flex w-full flex-col">
-        <div className="divider divider-primary mt-1 mb-1"></div>
+        <div className="divider divider-secondary mt-1 mb-1"></div>
       </div>
 
       {/* ---------------------------------parti detail------------------------- */}
@@ -188,33 +353,12 @@ const ParticipantInfo = () => {
                         <p> {participant_name}</p>
                       </div>
 
-                      {!isEditing ? (
-                        <button
-                          className="btn w-16"
-                          onClick={toggleParticipantEditing}
-                        >
-                          Edit
-                        </button>
-                      ) : (
-                        <>
-                          <div className="flex">
-                            <button
-                              className="btn"
-                              onClick={handleUpdateParticipantInfo}
-                            >
-                              Save
-                            </button>
-
-                            <button
-                              className="btn"
-                              onClick={toggleParticipantEditing}
-                              name="cancel"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </>
-                      )}
+                      <button
+                        className="btn btn-primary w-16"
+                        onClick={toggleParticipantEditing}
+                      >
+                        Edit
+                      </button>
                     </div>
                     <div className="flex mb-4">
                       <p className="w-24 infoTitle">Tel:</p>
@@ -242,32 +386,23 @@ const ParticipantInfo = () => {
                         />
                       </div>
 
-                      {!isEditing ? (
-                        <button
-                          className="btn w-16"
-                          onClick={toggleParticipantEditing}
-                        >
-                          Edit
-                        </button>
-                      ) : (
-                        <>
-                          <div className="flex">
-                            <button
-                              className="btn mr-2"
-                              onClick={handleUpdateParticipantInfo}
-                            >
-                              Save
-                            </button>
-                            <button
-                              className="btn"
-                              onClick={toggleParticipantEditing}
-                              name="cancel"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </>
-                      )}
+                      <>
+                        <div className="flex">
+                          <button
+                            className="btn btn-success"
+                            onClick={handleUpdateParticipantInfo}
+                          >
+                            Save
+                          </button>
+                          <button
+                            className="btn "
+                            onClick={toggleParticipantEditing}
+                            name="cancel"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </>
                     </div>
                     <div className="flex mb-4">
                       <p className="w-24 infoTitle">Tel:</p>
@@ -293,62 +428,95 @@ const ParticipantInfo = () => {
                 )}
           </div>
           {/* -----------------------------------add session----------------------------------- */}
-          <div className="flex mt-2 mb-2 justify-between">
-            <div className="ml-6">
-              <div className="flex items-center mb-4 mt-3">
-                <div className="w-24 infoTitle mr-2">Enrolled Session:</div>
-                <button
-                  className="btn ml-1 mt-1 mb-1 w-12"
-                  onClick={addSessionId}
-                >
-                  +
-                </button>
-                <button
-                  className="btn ml-1 mt-1 mb-1 w-12"
-                  onClick={removeSessionId}
-                >
-                  -
-                </button>
-              </div>
-              <div id="container" className="mb-2">
-                {sessionIds.map((sessionId, index) => (
-                  <div key={index}>
-                    <input
-                      className="input input-bordered input-sm w-full max-w-xs mb-1"
-                      type="text"
-                      value={sessionId}
-                      placeholder={`Session Id ${index + 1}`}
-                      onChange={(e) =>
-                        handleSessionInputChange(index, e.target.value)
-                      }
-                    />
+          {participant._id && (
+            <div className="flex mt-2 mb-2 justify-between">
+              <div className="ml-6">
+                <div className="flex items-center mb-4 mt-3">
+                  <div className="w-24 infoTitle mr-2">Enrolled Session:</div>
+                  <button
+                    className="btn ml-1 mt-1 mb-1 w-12 btn-accent"
+                    onClick={addSessionId}
+                  >
+                    +
+                  </button>
+                  <button
+                    className="btn ml-1 mt-1 mb-1 w-12 "
+                    onClick={removeSessionId}
+                  >
+                    -
+                  </button>
+                </div>
+                <div id="container" className="mb-2">
+                  {sessionIds.map((sessionId, index) => (
+                    <div key={index}>
+                      <input
+                        className="input input-bordered input-sm w-full max-w-xs mb-1"
+                        type="text"
+                        value={sessionId}
+                        placeholder={`Session Id ${index + 1}`}
+                        onChange={(e) =>
+                          handleSessionInputChange(index, e.target.value)
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+                {updateSessionErrorMsg && (
+                  <div className="text-red-500">{updateSessionErrorMsg}</div>
+                )}
+                {updateSessionSuccessMsg && (
+                  <div className="text-green-500">
+                    {updateSessionSuccessMsg}
                   </div>
-                ))}
+                )}
               </div>
+              <button
+                className="btn w-16 mr-6 mt-4 btn-primary"
+                onClick={() => handleUpdateSessions()}
+              >
+                Create
+              </button>
             </div>
-            <button
-              className="btn w-16 mr-6 mt-4"
-              onClick={() => handleSubmit()}
-            >
-              Create
-            </button>
-          </div>
+          )}
 
           <div className="stat">
             {programDataPackage.length > 0 &&
               programDataPackage.map(({ programInfo, sessionInfo }) => {
+                const formattedDates = sessionInfo.session_dates
+                  .map(formatDateToLocal)
+                  .join(", ");
                 return (
                   <div key={programInfo._id + "-" + sessionInfo._id}>
                     <div className="flex items-center justify-between">
                       <p className="infoTitle">Program Name:</p>
-                      <button className="btn w-16">Remove</button>
+                      <button
+                        className="btn btn-sm w-16 btn-error"
+                        onClick={() =>
+                          handleRemoveEnrolledSession(sessionInfo._id)
+                        }
+                      >
+                        Remove
+                      </button>
                     </div>
                     <p className="mb-3 ml-10 mt-2">
                       {programInfo.program_name_zh}
                     </p>
                     <p className="infoTitle mb-4">Session Date:</p>
-                    <p className="ml-10 mt-2">{sessionInfo.session_dates}</p>
-                    <div className="divider"></div>
+                    <p className="mb-3 ml-10 mt-2">{formattedDates}</p>
+                    {/* session id && button */}
+                    <div className="flex flex-col w-full">
+                      <p className="infoTitle mb-4">Session Id:</p>{" "}
+                      <div className="flex flex-row">
+                        <p className="mb-3 ml-10 mt-2">{sessionInfo._id}</p>
+                        <button
+                          className={"btn btn-sm btn-accent ml-2 mb-3"}
+                          onClick={() => copyToClipboard(sessionInfo._id)}
+                        >
+                          Copy Session Id
+                        </button>
+                      </div>
+                    </div>
+                    <div className="divider "></div>
                   </div>
                 );
               })}

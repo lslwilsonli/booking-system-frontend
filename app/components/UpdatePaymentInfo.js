@@ -6,7 +6,10 @@ const UpdatePaymentInfo = ({ userData, onUpdateUserData }) => {
   const [newFPSNumber, setNewFPSNumber] = useState("");
   const [newPayMeNumber, setNewPayMeNumber] = useState("");
   const [FPSError, setFPSError] = useState("");
-  const [PayMeError, setPayMeError] = useState("");
+  const [payMeError, setPayMeError] = useState("");
+
+  const [FPSSuccess, setFPSSuccess] = useState("");
+  const [payMeSuccess, setPayMeSuccess] = useState("");
 
   const router = useRouter();
   const token = localStorage.getItem("token");
@@ -23,6 +26,10 @@ const UpdatePaymentInfo = ({ userData, onUpdateUserData }) => {
 
   const handleFPSOnSubmit = async () => {
     setNewFPSNumber("");
+    setFPSError("");
+    setFPSSuccess("");
+    // setPayMeSuccess("");
+
     let FPSerr = "";
     if (!newFPSNumber) {
       FPSerr = "FPS number cannot be empty";
@@ -31,7 +38,7 @@ const UpdatePaymentInfo = ({ userData, onUpdateUserData }) => {
     if (!FPSerr) {
       try {
         const res = await fetch(
-          "http://localhost:3030/update-payment-details",
+          `${process.env.NEXT_PUBLIC_BACKEND_API}/update-payment-details`,
           {
             method: "POST",
             headers: {
@@ -44,7 +51,15 @@ const UpdatePaymentInfo = ({ userData, onUpdateUserData }) => {
             }),
           }
         );
-        setFPSError("Successful to update FPS number");
+        setFPSSuccess("Successful to update FPS number");
+        onUpdateUserData((prev) => ({
+          ...prev,
+          payment_number: {
+            ...prev.payment_number,
+            fps: newFPSNumber,
+          },
+        }));
+
         setNewFPSNumber("");
       } catch (error) {
         console.log(error);
@@ -56,6 +71,9 @@ const UpdatePaymentInfo = ({ userData, onUpdateUserData }) => {
 
   const handlePayMeOnSubmit = async () => {
     setPayMeError("");
+    setPayMeSuccess("");
+    // setFPSSuccess("");
+
     let PayMeErr = "";
     if (!newPayMeNumber) {
       PayMeErr = "PayMe number cannot be empty";
@@ -64,7 +82,7 @@ const UpdatePaymentInfo = ({ userData, onUpdateUserData }) => {
     if (!PayMeErr) {
       try {
         const res = await fetch(
-          "http://localhost:3030/update-payment-details",
+          `${process.env.NEXT_PUBLIC_BACKEND_API}/update-payment-details`,
           {
             method: "POST",
             headers: {
@@ -79,7 +97,14 @@ const UpdatePaymentInfo = ({ userData, onUpdateUserData }) => {
         );
 
         if (res.ok) {
-          setPayMeError("Successfully updated PayMe number");
+          setPayMeSuccess("Successfully updated PayMe number");
+          onUpdateUserData((prev) => ({
+            ...prev,
+            payment_number: {
+              ...prev.payment_number,
+              payme: newPayMeNumber,
+            },
+          }));
           setNewPayMeNumber("");
         } else {
           setPayMeError("Failed to update PayMe number");
@@ -96,19 +121,19 @@ const UpdatePaymentInfo = ({ userData, onUpdateUserData }) => {
   return (
     <>
       <div className="flex-col">
-        <div>Update Payment Details</div>
         <div>
           <p>New FPS Number</p>
           <input
             name="fps"
             value={newFPSNumber}
             onChange={handleOnChange}
-            className="input input-bordered input-sm w-full max-w-xs mr-2"
+            className="input input-bordered input-sm w-full max-w-xs"
             placeholder="Enter you FPS number here"
           />
           {FPSError && <div style={{ color: "red" }}>{FPSError}</div>}
+          {FPSSuccess && <div style={{ color: "green" }}>{FPSSuccess}</div>}
           <button
-            className="btn mt-2"
+            className="btn btn-primary mt-2 mb-6"
             type="button"
             onClick={handleFPSOnSubmit}
           >
@@ -124,9 +149,15 @@ const UpdatePaymentInfo = ({ userData, onUpdateUserData }) => {
             className="input input-bordered input-sm w-full max-w-xs mr-2"
             placeholder="Enter you PayMe number here"
           />
-          {PayMeError && <div style={{ color: "red" }}>{PayMeError}</div>}
+          {payMeError && (
+            <div style={{ color: "red", width: "340px" }}>{payMeError}</div>
+          )}
+          {payMeSuccess && (
+            <div style={{ color: "green", width: "340px" }}>{payMeSuccess}</div>
+          )}
+
           <button
-            className="btn mt-2"
+            className="btn btn-primary mt-2"
             type="button"
             onClick={handlePayMeOnSubmit}
           >

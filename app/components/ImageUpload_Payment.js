@@ -31,7 +31,7 @@ const ImageUpload_Payment = ({
 
       setSelectedImage(file);
       setPreviewUrl(URL.createObjectURL(file));
-      setUploadStatus("Image selected successfully");
+      setUploadStatus("Please upload the image");
 
       // Clean up the old preview URL
       if (previewUrl) {
@@ -98,7 +98,7 @@ const ImageUpload_Payment = ({
 
         {selectedImage && (
           <button
-            className="btn btn-primary"
+            className="btn btn-neutral"
             onClick={handleUpload}
             disabled={isUploading}
           >

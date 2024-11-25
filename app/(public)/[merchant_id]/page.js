@@ -9,12 +9,15 @@ export default function Page() {
   const [selectType, setSelectType] = useState("");
 
   useEffect(() => {
+    ``;
     fetchPrograms(merchant_id);
   }, [merchant_id]);
 
   //fetch program info
   async function fetchPrograms(merchant_id) {
-    const res = await fetch(`http://localhost:3030/programs/${merchant_id}`);
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_API}/programs/${merchant_id}`
+    );
     const info = await res.json();
     setProgramInfo(info);
 
@@ -69,10 +72,13 @@ export default function Page() {
               return (
                 <div
                   key={index}
-                  className="card bg-base-100 w-80 shadow-xl mx-10 my-10 flex"
+                  className="card bg-base-100 w-80  shadow-xl mx-10 my-10 flex"
                 >
                   <figure>
-                    <img src={getImageDisplay(el.program_image)} />
+                    <img
+                      className="w-80 h-80 object-cover"
+                      src={getImageDisplay(el.program_image)}
+                    />
                   </figure>
                   <div className="card-body">
                     <h3 className="card-title justify-center">

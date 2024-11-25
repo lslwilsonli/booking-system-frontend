@@ -30,7 +30,7 @@ export function SimpleTable({ isLoading, data }) {
   async function updateDatabase(participant_id, newStatus) {
     try {
       const response = await fetch(
-        "http://localhost:3030/update-payment-status",
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/update-payment-status`,
         {
           method: "POST",
           headers: {
@@ -87,7 +87,7 @@ export function SimpleTable({ isLoading, data }) {
               },
               idx
             ) => (
-              <tr key={participant_id} className="hover">
+              <tr key={_id} className="hover">
                 <td>
                   <span
                     className="hover cursor-pointer text-blue-500 hover:underline"
@@ -100,7 +100,15 @@ export function SimpleTable({ isLoading, data }) {
                 </td>
                 <td>{telephone_no}</td>
                 <td>{program_name_zh}</td>
-                <td>{new Date(session_dates).toLocaleString()}</td>
+                <td>
+                  {Array.isArray(session_dates) ? (
+                    session_dates.map((date, index) => (
+                      <div key={index}>{new Date(date).toLocaleString()}</div>
+                    ))
+                  ) : (
+                    <div>{new Date(session_dates).toLocaleString()}</div>
+                  )}
+                </td>
                 <td>{payment_status}</td>
                 <td>{payment_method}</td>
                 <td>{new Date(payment_date).toLocaleString()}</td>
@@ -155,13 +163,16 @@ const Payment = () => {
   const handleOnClick = async () => {
     setLoading(false);
     try {
-      const res = await fetch("http://localhost:3030/get-payment-info", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-type": "application/json",
-        },
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/get-payment-info`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-type": "application/json",
+          },
+        }
+      );
       if (res.ok) {
         console.log("Test OK");
         const result = await res.json();

@@ -68,7 +68,7 @@ export default function SessionSelection({
           </label> */}
 
           {/* Remark */}
-          <label className="form-control">
+          {/* <label className="form-control">
             <div className="label">
               <span className="label-text">Remark</span>
             </div>
@@ -80,7 +80,7 @@ export default function SessionSelection({
                 setBookingData({ ...bookingData, remark: e.target.value })
               }
             ></textarea>
-          </label>
+          </label> */}
 
           <button
             className="btn btn-block mt-5"

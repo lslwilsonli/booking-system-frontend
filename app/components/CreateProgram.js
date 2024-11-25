@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 
-const CreateProgram = () => {
+const CreateProgram = ({ programs, setPrograms }) => {
   const token = localStorage.getItem("token");
   // for creating program input fields
   const [program, setProgram] = useState({
@@ -101,17 +101,33 @@ const CreateProgram = () => {
       }
     }
 
-    const res = await fetch("http://localhost:3030/add-new-program", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-type": "application/json",
-      },
-      body: JSON.stringify(program),
-    });
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_API}/add-new-program`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-type": "application/json",
+        },
+        body: JSON.stringify(program),
+      }
+    );
 
     if (res.ok) {
+      const result = await res.json();
+      const prog = result.program;
+
       setSuccess("Successful to create Program");
+      setPrograms((prev) => [
+        ...prev,
+        {
+          _id: prog._id,
+          program_name_zh: prog.program_name_zh,
+          program_type: prog.program_type,
+          program_price_per_lesson: prog.program_price_per_lesson,
+        },
+      ]);
+
       setProgram({
         progName: "",
         progType: "",
@@ -198,7 +214,7 @@ const CreateProgram = () => {
         <div>
           <div className="flex items-center mt-1 mb-1">
             <div className="mr-1 infoTitle">Image Link: </div>
-            <button className="btn w-12 mr-1" onClick={addImage}>
+            <button className="btn btn-accent w-12 mr-1" onClick={addImage}>
               +
             </button>
             <button className="btn w-12" onClick={removeImage}>
@@ -225,7 +241,10 @@ const CreateProgram = () => {
           <div id="container"></div>
           <br />
         </div>
-        <button className="btn mb-4 text-xs" onClick={handleOnSubmit}>
+        <button
+          className="btn  btn-accent mb-4 text-xs"
+          onClick={handleOnSubmit}
+        >
           Create
         </button>
         {error && <p style={{ color: "red" }}>{error}</p>}

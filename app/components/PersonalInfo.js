@@ -4,6 +4,7 @@ export default function PersonalInfo({
   programName,
   programPrice,
   programImage,
+  programInfo,
   bookingData,
   setBookingData,
   page,
@@ -38,7 +39,7 @@ export default function PersonalInfo({
   const handleSubmit = async () => {
     try {
       const res = await fetch(
-        `http://localhost:3030/add-new-participant-non-merchant`,
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/add-new-participant-non-merchant`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -53,6 +54,10 @@ export default function PersonalInfo({
       const dbResponse = await res.json();
       console.log("dbResponse.message", dbResponse.message);
       console.log("dbResponse.paymentId", dbResponse.paymentId);
+      setBookingData((prevData) => ({
+        ...prevData,
+        payment_id: dbResponse.paymentId,
+      }));
       if (!res.ok) {
         throw new Error(
           `Failed to post data: ${res.status} - ${res.statusText}`
@@ -80,8 +85,24 @@ export default function PersonalInfo({
               alt="Program"
             />
             <div className="flex flex-col items-start justify-around w-full">
-              <p className="text-start">{programName}</p>
-              <p className="text-start">HK ${programPrice}</p>
+              <p className="text-start text-lg font-bold">{programName}</p>
+              <p className="text-start text-md">
+                {programInfo.lesson_duration / 60 > 1
+                  ? `${programInfo.lesson_duration / 60} hours`
+                  : `${programInfo.lesson_duration / 60} hour`}
+
+                <span className="text-sm text-gray-500 italic">
+                  {" "}
+                  / per lesson
+                </span>
+              </p>
+
+              <p className="text-start">
+                HK ${programPrice}{" "}
+                <span className="text-sm text-gray-500 italic">
+                  / per lesson
+                </span>
+              </p>
             </div>
           </div>
           <div className="divider"></div>
@@ -132,9 +153,9 @@ export default function PersonalInfo({
             <div>{renderSessions()}</div>
           </div>
 
-          <p className="text-gray-500 text-sm italic">
+          {/* <p className="text-gray-500 text-sm italic">
             Remark: {bookingData.remark}
-          </p>
+          </p> */}
 
           {/* Bill */}
           <div className="bill-card rounded-md shadow-md my-5 bg-white">

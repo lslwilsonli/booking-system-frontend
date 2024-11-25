@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import "../../../globals.css";
 import { jwtDecode } from "jwt-decode";
+import Loading from "@/app/components/Loading";
 
 const Participant = () => {
   // Same as the code in program folder page.js. The simplest method to get the merchantId of the login user
@@ -110,7 +111,7 @@ const Participant = () => {
   //     }
 
   //     setShowAddList(false);
-  //     const res = await fetch("http://localhost:3030/add-new-participant", {
+  //     const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API}/add-new-participant`, {
   //       method: "POST",
   //       body: JSON.stringify({
   //         participant_name: partiName,
@@ -179,20 +180,23 @@ const Participant = () => {
         return;
       }
 
-      const res = await fetch("http://localhost:3030/add-new-participant", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-type": "application/json",
-        },
-        body: JSON.stringify({
-          participant_name: partiName,
-          telephone_no: telephone,
-          enrolled_session_id: sessionIds,
-        }),
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/add-new-participant`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-type": "application/json",
+          },
+          body: JSON.stringify({
+            participant_name: partiName,
+            telephone_no: telephone,
+            enrolled_session_id: sessionIds,
+          }),
+        }
+      );
 
-      const responseText = await res.text();
+      const responseText = await res.json();
       console.log("Response text:", responseText);
 
       if (res.ok) {
@@ -203,7 +207,7 @@ const Participant = () => {
         setSuccess(`Create success, new participant is added`);
         fetchParticipants();
       } else {
-        setError(`Create failed, ${responseText}`);
+        setError(`Create failed, ${responseText.message}`);
       }
     } else {
       setError(
@@ -218,12 +222,15 @@ const Participant = () => {
 
   async function fetchParticipants() {
     try {
-      const result = await fetch(`http://localhost:3030/all-participants`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const result = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/all-participants`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       const participantsData = await result.json();
       console.log("participantsData fetched");
@@ -274,11 +281,14 @@ const Participant = () => {
       </label>
       {/* --------------------------------分隔個條線--------------------------- */}
       <div className="flex w-full flex-col">
-        <div className="divider divider-primary mt-1 mb-1"></div>
+        <div className="divider divider-secondary mt-1 mb-1"></div>
       </div>
       {/* -------------------------------Create Participant button-------------------------- */}
       <div className="relative">
-        <button className="btn mt-1 mb-4" onClick={handlePopupToggle}>
+        <button
+          className="btn mt-1 mb-4 btn-primary"
+          onClick={handlePopupToggle}
+        >
           Create Participant
         </button>
         {showPopup && (
@@ -306,7 +316,10 @@ const Participant = () => {
             <div>
               <div className="flex items-center mb-4">
                 <div className="infoTitle">Session:</div>
-                <button className="btn ml-1 mt-1 w-12" onClick={addSessionId}>
+                <button
+                  className="btn ml-1 mt-1 w-12 btn-accent"
+                  onClick={addSessionId}
+                >
                   +
                 </button>
                 <button
@@ -330,7 +343,10 @@ const Participant = () => {
                 ))}
               </div>
             </div>
-            <button className="btn mb-4 mt-4 text-xs" onClick={handleSubmit}>
+            <button
+              className="btn mb-4 mt-4 text-xs btn-accent"
+              onClick={handleSubmit}
+            >
               Create
             </button>
             {error && <p className="text-red-500">{error}</p>}
@@ -376,7 +392,7 @@ const Participant = () => {
                     ) => (
                       <tr
                         key={_id}
-                        className="hover cursor-pointer"
+                        className="hover:bg-primary cursor-pointer hover:bg-opacity-30"
                         onClick={() =>
                           router.push(`/dashboard/participant/${_id}`)
                         }

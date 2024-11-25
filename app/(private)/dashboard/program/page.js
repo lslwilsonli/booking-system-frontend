@@ -37,7 +37,7 @@ const Program = () => {
 
   async function fetchPrograms() {
     //   try {
-    //     const result = await fetch(`http://localhost:3030/all-programs`, {
+    //     const result = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API}/all-programs`, {
     //       method: "POST",
     //       headers: {
     //         "Content-type": "application/json",
@@ -53,12 +53,15 @@ const Program = () => {
     // }
 
     try {
-      const result = await fetch(`http://localhost:3030/all-programs`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const result = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/all-programs`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       const programsData = await result.json();
       setPrograms(programsData);
@@ -140,11 +143,14 @@ const Program = () => {
       </label>
       {/* --------------------------------分隔個條線--------------------------- */}
       <div className="flex w-full flex-col">
-        <div className="divider divider-primary mt-1 mb-1"></div>
+        <div className="divider divider-secondary mt-1 mb-1"></div>
       </div>
       {/* -------------------------------Create Participant button-------------------------- */}
       <div className="relative">
-        <button className="btn mt-1 mb-4" onClick={handlePopupToggle}>
+        <button
+          className="btn btn-primary mt-1 mb-4"
+          onClick={handlePopupToggle}
+        >
           Create Program
         </button>
         {!showPopup && (
@@ -152,7 +158,12 @@ const Program = () => {
             className="absolute z-10 bg-base-100 p-4 rounded shadow-2xl"
             style={{ top: "100%", left: "0" }}
           >
-            <CreateProgram showPopup={showPopup} setShowPopup={setShowPopup} />
+            <CreateProgram
+              showPopup={showPopup}
+              setShowPopup={setShowPopup}
+              programs={programs}
+              setPrograms={setPrograms}
+            />
           </div>
         )}
       </div>
@@ -195,7 +206,7 @@ const Program = () => {
                     ) => (
                       <tr
                         key={_id}
-                        className="hover cursor-pointer"
+                        className="hover:bg-primary cursor-pointer hover:bg-opacity-30"
                         onClick={() => router.push(`/dashboard/program/${_id}`)}
                       >
                         <th>{idx + 1}</th>

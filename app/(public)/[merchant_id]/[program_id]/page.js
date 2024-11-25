@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import SessionSelection from "@/app/components/SessionSelection";
 import PersonalInfo from "@/app/components/PersonalInfo";
-import { ConfirmBooking } from "@/app/components/ConfirmBooking";
+import { useRouter } from "next/navigation";
 
 export default function Page() {
   const { program_id, merchant_id } = useParams();
@@ -13,6 +13,7 @@ export default function Page() {
   const [programName, setProgramName] = useState("");
   const [programImage, setProgramImage] = useState([]);
   const [programPrice, setProgramPrice] = useState(null);
+  const router = useRouter();
 
   //form storage
   const [page, setPage] = useState(0);
@@ -24,6 +25,7 @@ export default function Page() {
     name: "",
     phone: "",
     session_id: [],
+    payment_id: "",
   });
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export default function Page() {
   //fetch program info
   async function fetchPrograms(program_id) {
     const res = await fetch(
-      `http://localhost:3030/get-program-info/${program_id}`
+      `${process.env.NEXT_PUBLIC_BACKEND_API}/get-program-info/${program_id}`
     );
     if (res.ok) {
       const info = await res.json();
@@ -51,7 +53,7 @@ export default function Page() {
   //fetch session info
   async function fetchProgramSessions(program_id) {
     const res = await fetch(
-      `http://localhost:3030/programs-sessions/${program_id}`
+      `${process.env.NEXT_PUBLIC_BACKEND_API}/programs-sessions/${program_id}`
     );
     if (res.ok) {
       const info = await res.json();
@@ -79,62 +81,67 @@ export default function Page() {
         return "Invalid date";
       }
 
-      const month = date.toLocaleString("en", { month: "short" });
-      const day = date.getDate();
+      const day = String(date.getDate()).padStart(2, "0"); // Add leading zero to day
+      const month = String(date.getMonth() + 1).padStart(2, "0"); // Add leading zero to month
       const year = date.getFullYear();
+      const hours = date.getHours();
+      const minutes = String(date.getMinutes()).padStart(2, "0"); // Add leading zero to minutes
+      const period = hours >= 12 ? "pm" : "am";
+      const formattedHours = hours % 12 === 0 ? 12 : hours % 12; // Convert to 12-hour format
       const weekday = date.toLocaleString("en", { weekday: "short" });
 
-      return `${month} ${day}, ${year} (${weekday})`;
+      return `${day}/${month}/${year} ${formattedHours}:${minutes}${period} (${weekday})`;
     } catch (error) {
       console.error("Date formatting error:", error);
       return "Wrong format";
     }
   }
 
-  function PageDisplay() {
-    if (page === 0)
-      return (
-        <SessionSelection
-          programName={programName}
-          programImage={programImage}
-          programPrice={programPrice}
-          programInfo={programInfo}
-          programSessions={programSessions}
-          sessionInfo={sessionInfo}
-          bookingData={bookingData}
-          setBookingData={setBookingData}
-          page={page}
-          setPage={setPage}
-          formatDate={formatDate}
-        />
-      );
-    else if (page === 1)
-      return (
-        <PersonalInfo
-          programName={programName}
-          programPrice={programPrice}
-          programImage={programImage}
-          bookingData={bookingData}
-          setBookingData={setBookingData}
-          page={page}
-          setPage={setPage}
-          formatDate={formatDate}
-          merchant_id={merchant_id}
-        />
-      );
-    else
-      return (
-        <ConfirmBooking
-          programName={programName}
-          programPrice={programPrice}
-          bookingData={bookingData}
-          setBookingData={setBookingData}
-          page={page}
-          setPage={setPage}
-          formatDate={formatDate}
-        />
-      );
-  }
+  useEffect(() => {
+    if (page === 2) {
+      router.push(`/payment/${bookingData.payment_id}`);
+    }
+  }, [page, router, bookingData.payment_id]);
+
+  const PageDisplay = () => {
+    switch (page) {
+      case 0:
+        return (
+          <SessionSelection
+            programName={programName}
+            programImage={programImage}
+            programPrice={programPrice}
+            programInfo={programInfo}
+            programSessions={programSessions}
+            sessionInfo={sessionInfo}
+            bookingData={bookingData}
+            setBookingData={setBookingData}
+            page={page}
+            setPage={setPage}
+            formatDate={formatDate}
+          />
+        );
+      case 1:
+        return (
+          <PersonalInfo
+            programName={programName}
+            programPrice={programPrice}
+            programImage={programImage}
+            programInfo={programInfo}
+            bookingData={bookingData}
+            setBookingData={setBookingData}
+            page={page}
+            setPage={setPage}
+            formatDate={formatDate}
+            merchant_id={merchant_id}
+          />
+        );
+      case 2:
+        return null;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="mx-10">

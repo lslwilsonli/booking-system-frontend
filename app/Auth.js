@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import Logout from "./components/Logout";
 // import { useRouter } from "next/navigation";
+import Loading from "./components/Loading";
 
 const AuthContext = createContext();
 
@@ -24,12 +25,15 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      const response = await fetch("http://localhost:3030/profile", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/profile`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       setIsLogin(response.ok);
       setReady(true);
@@ -38,10 +42,10 @@ export const AuthProvider = ({ children }) => {
 
     fetchProfileData();
   }, []);
-
+  // Loading problem with error?
   return (
     <AuthContext.Provider value={authState}>
-      {ready ? children : <Logout />}
+      {ready ? children : <Loading />}
     </AuthContext.Provider>
   );
 };

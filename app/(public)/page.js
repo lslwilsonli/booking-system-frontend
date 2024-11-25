@@ -41,7 +41,7 @@ export const AccountLogin = () => {
     const { merchant_username, password } = data;
 
     if (merchant_username && password) {
-      const res = await fetch("http://localhost:3030/login", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API}/login`, {
         method: "POST",
         body: JSON.stringify({
           merchant_username,
@@ -60,7 +60,7 @@ export const AccountLogin = () => {
         // new code
         setIsLogin(true);
       } else {
-        setError("帳號或密碼錯誤");
+        setError("Wrong username or password");
       }
     } else {
       setError("Either username or password is empty");
@@ -101,7 +101,7 @@ export const AccountLogin = () => {
             ></input>
           </div> */}
           <div className="label mt-20">
-            <span className="label-text">帳戶名稱</span>
+            <span className="label-text">Username</span>
           </div>
           <label className="input input-bordered flex items-center gap-2">
             <svg
@@ -116,14 +116,14 @@ export const AccountLogin = () => {
               type="text"
               className="grow"
               name="merchant_username"
-              placeholder="帳戶名稱"
+              placeholder="Username"
               value={data.merchant_username}
               onChange={handleOnChange}
             />
           </label>
           <br />
           <div className="label">
-            <span className="label-text">密碼</span>
+            <span className="label-text">Password</span>
           </div>
           <label className="input input-bordered flex items-center gap-2">
             <svg
@@ -143,7 +143,7 @@ export const AccountLogin = () => {
               type="password"
               className="grow"
               value={data.password}
-              placeholder="密碼"
+              placeholder="Password"
               onChange={handleOnChange}
             />
           </label>
@@ -152,16 +152,16 @@ export const AccountLogin = () => {
             {error && <p style={{ color: "red" }}>{error}</p>}
           </div>
           <button type="submit" className="btn btn-active mt-4">
-            登入
+            Login
           </button>
         </form>
         <p className="mt-2">
-          沒有帳號？
+          Don't have an account？
           <Link
             href="/register"
             className="link link-hover underline underline-offset-2"
           >
-            按此註冊
+            Create Account
           </Link>
         </p>
       </div>

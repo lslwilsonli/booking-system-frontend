@@ -4,6 +4,28 @@ import React, { useState, useEffect, Fragment } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import ImageUpload from "../../../../components/ImageUpload_v2";
+import { DBRef } from "bson";
+import Toast from "@/app/components/Toast";
+
+function formatDateToLocal(dateString) {
+  const date = new Date(dateString);
+
+  // 檢查日期是否有效
+  if (isNaN(date.getTime())) {
+    return "Invalid date";
+  }
+
+  const day = String(date.getDate()).padStart(2, "0"); // 補零
+  const month = String(date.getMonth() + 1).padStart(2, "0"); // 補零
+  const year = date.getFullYear();
+  const hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0"); // 補零
+  const period = hours >= 12 ? "pm" : "am";
+  const formattedHours = hours % 12 === 0 ? 12 : hours % 12; // 12小時格式
+  const weekday = date.toLocaleString("en", { weekday: "short" });
+
+  return `${day}/${month}/${year} ${formattedHours}:${minutes}${period} (${weekday})`;
+}
 
 const ProgramInfo = () => {
   const params = useParams();
@@ -14,7 +36,6 @@ const ProgramInfo = () => {
   const [uploadImage, setUploadImage] = useState(false);
   // sessions
   const [sessionsInfo, setSessionsInfo] = useState([]);
-  const [sessionAdding, setSessionAdding] = useState(false);
   const [newSessionInfo, setNewSessionInfo] = useState({
     session_type: "",
     teacher: "",
@@ -27,7 +48,7 @@ const ProgramInfo = () => {
   const [sessionCreateSuccess, setSessionCreateSuccess] = useState("");
   const [sessionUpdating, setSessionUpdating] = useState(false);
   const [sessionUpdateError, setSessionUpdateError] = useState("");
-  const [sessionUpdateSuccess, setSessionUpdateSuccess] = useState("");
+  // const [sessionUpdateSuccess, setSessionUpdateSuccess] = useState("");
 
   const {
     _id,
@@ -56,11 +77,12 @@ const ProgramInfo = () => {
   }, []);
 
   // api starts
+
   async function fetchProgramInfo() {
     let programInfoData;
     try {
       const result = await fetch(
-        `http://localhost:3030/get-program-info/${params.id}`
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/get-program-info/${params.id}`
       );
       programInfoData = await result.json();
     } catch (err) {
@@ -68,7 +90,7 @@ const ProgramInfo = () => {
     }
     try {
       const sessions_result = await fetch(
-        `http://localhost:3030/get-session-info/${programInfoData._id}`
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/get-session-info/${programInfoData._id}`
       );
       const sessionsInfoData = await sessions_result.json();
       setProgramInfo(programInfoData);
@@ -80,12 +102,22 @@ const ProgramInfo = () => {
 
   async function createSessionInfo() {
     try {
+      // 將 session_dates 轉換為 UTC 格式
+      // 將 session_dates 轉換為 UTC 格式
+      const utcSessionDates = newSessionInfo.session_dates.map((date) => {
+        const dateObj = new Date(date);
+
+        // 減去 8 小時以轉換為 UTC
+        dateObj.setHours(dateObj.getHours() - 8);
+        return dateObj.toISOString(); // 這會返回 UTC 格式的 ISO 字串
+      });
       const createSession = await fetch(
-        "http://localhost:3030/create-session-info",
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/create-session-info`,
         {
           method: "POST",
           body: JSON.stringify({
             ...newSessionInfo,
+            session_dates: utcSessionDates, // 使用 UTC 格式的日期
             program_id: programInfo._id,
           }),
           headers: {
@@ -101,7 +133,7 @@ const ProgramInfo = () => {
   async function updateProgramInfo() {
     try {
       const updateResult = await fetch(
-        `http://localhost:3030/update-program-info`,
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/update-program-info`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -116,11 +148,11 @@ const ProgramInfo = () => {
       console.log(err);
     }
   }
-
+  console.log("sessionsInfo", sessionsInfo);
   async function updateSessionInfo() {
     try {
       const updateResult = await fetch(
-        `http://localhost:3030/update-session-info`,
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/update-session-info`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -131,26 +163,44 @@ const ProgramInfo = () => {
           },
         }
       );
+      const res = await updateResult.json();
+      console.log("res", res.ok);
+      console.log("res.message", res.message);
+      if (!updateResult.ok) {
+        Toast(`${res.message}`, "error");
+        return;
+      }
+      if (res.modifiedCount === 0) {
+        Toast("No Changes Made", "info");
+      } else {
+        Toast(
+          `${res.message}, updated ${res.modifiedCount} session${
+            res.modifiedCount > 1 ? "s" : ""
+          }`,
+          "success"
+        );
+      }
     } catch (err) {
       console.log(err);
     }
   }
+
   // api ends
 
   // Sessions function starts
+
   function isoDateFunction() {
     const today = new Date();
-
-    // 獲取當前日期和時間，格式化為不帶秒數的字串
     const year = today.getUTCFullYear();
     const month = String(today.getUTCMonth() + 1).padStart(2, "0"); // 月份從0開始
     const day = String(today.getUTCDate()).padStart(2, "0");
-    const hours = String(today.getUTCHours()).padStart(2, "0");
+
+    const hongKongHours = today.getUTCHours() + 8; // 香港時間比 UTC 多 8 小時
+    const hours = String(hongKongHours % 24).padStart(2, "0"); // 處理跨日的情況
     const minutes = String(today.getUTCMinutes()).padStart(2, "0");
 
     // 組合成 ISO 格式字串
-    const isoDate = `${year}-${month}-${day}T${hours}:${minutes}:00.000Z`;
-    return isoDate;
+    return `${year}-${month}-${day}T${hours}:${minutes}:00.000Z`;
   }
 
   function newSessionInfoInitialization() {
@@ -168,7 +218,6 @@ const ProgramInfo = () => {
 
   function toggleCreateSessionEditing(e) {
     const { name } = e.target;
-    setSessionAdding((prev) => !prev);
     newSessionInfoInitialization();
     if (e.target?.name === "cancel") {
       newSessionInfoInitialization();
@@ -177,6 +226,8 @@ const ProgramInfo = () => {
 
   function handleCreateSessionInfo(e) {
     let sessionTypeError = false;
+    setSessionCreateError("");
+    setSessionCreateSuccess("");
     try {
       if (
         !session_type ||
@@ -195,6 +246,7 @@ const ProgramInfo = () => {
         setSessionCreateSuccess("");
         sessionTypeError = true;
       }
+      newSessionInfoInitialization();
     } catch (err) {
       console.log("session type error");
     }
@@ -203,7 +255,6 @@ const ProgramInfo = () => {
       createSessionInfo();
       setSessionCreateSuccess("Created Session Successfully");
       fetchProgramInfo();
-      setSessionAdding((prev) => !prev);
     } catch (err) {
       console.log("failed to create session");
     }
@@ -213,7 +264,8 @@ const ProgramInfo = () => {
     const { name, value } = e.target;
     console.log("name", name);
     console.log("value", value);
-
+    setSessionCreateError("");
+    setSessionCreateSuccess("");
     // session_type, teacher, session_notice
     if (
       name === "session_type" ||
@@ -228,7 +280,7 @@ const ProgramInfo = () => {
     if (name === "vacancy_timeslot" || name === "vacancy_participant") {
       const numValue = Number(value);
       if (isNaN(numValue)) {
-        alert("Please enter a valid non-negative decimal number");
+        Toast("Please enter a valid non-negative decimal number", "warning");
       }
       if (numValue > 0 || value === "") {
         setNewSessionInfo((prev) => ({
@@ -237,9 +289,6 @@ const ProgramInfo = () => {
         }));
       }
     }
-    // session_dates: [isoDateFunction()],
-    //   vacancy_timeslot: 0,
-    //   vacancy_participant: 0,
   }
   console.log("newSessionInfo", newSessionInfo);
   // Function to handle date changes for new session
@@ -300,7 +349,7 @@ const ProgramInfo = () => {
     navigator.clipboard
       .writeText(id)
       .then(() => {
-        alert(`Session Id ${id} copied to clipboard!`);
+        Toast(`Session Id: ${id} copied to clipboard!`, "success");
       })
       .catch((err) => {
         console.error("Failed to copy: ", err);
@@ -309,6 +358,8 @@ const ProgramInfo = () => {
 
   function toggleUpdateSessionEditing(e) {
     setSessionUpdating((prev) => !prev);
+    // setSessionUpdateSuccess("");
+    setSessionUpdateError("");
     setSessionsInfo((prev) => {
       const updatedSessions = prev.map((session) => {
         return {
@@ -323,36 +374,48 @@ const ProgramInfo = () => {
       //   "all unsaved sessions changes will be cancelled, input 'Yes' to confirm"
       // );
       // response?.toLowerCase() === "yes" && fetchProgramInfo();
-      setSessionUpdateSuccess("");
-      setSessionUpdateError("");
       fetchProgramInfo();
     }
   }
 
   function handleUpdateSessionInfo(e) {
     toggleUpdateSessionEditing(e);
-    setSessionUpdateSuccess("");
+    // setSessionUpdateSuccess("");
     setSessionUpdateError("");
-    try {
-      let sessionTypeError = false;
-      sessionsInfo.forEach((session) => {
-        if (
-          session.session_type === "timeslot" &&
-          session.session_dates.length > 1
-        ) {
-          setSessionUpdateError(
-            "Only 1 session date can be added for type of timeslot"
-          );
-          setSessionUpdateSuccess("");
-          sessionTypeError = true;
-        }
-      });
-      if (sessionTypeError) return;
-      updateSessionInfo();
-      setSessionUpdateSuccess("Updated Session Successfully");
-    } catch (err) {
-      console.log("failed to update session");
-    }
+    const response = Toast(
+      `Confirm to update? No revert can be made! (Input "Yes" to continue)`,
+      "warning",
+      {
+        withPrompt: true,
+        onPromptSubmit: (response) => {
+          if (response.toLowerCase() === "yes")
+            try {
+              let sessionTypeError = false;
+              sessionsInfo.forEach((session) => {
+                if (
+                  session.session_type === "timeslot" &&
+                  session.session_dates.length > 1
+                ) {
+                  // setSessionUpdateError(
+                  //   "Only 1 session date can be added for type of timeslot"
+                  // );
+                  Toast(
+                    "Only 1 session date can be added for type of timeslot",
+                    "warning"
+                  );
+                  // setSessionUpdateSuccess("");
+
+                  sessionTypeError = true;
+                }
+              });
+              if (sessionTypeError) return;
+              updateSessionInfo();
+            } catch (err) {
+              console.log("failed to update session");
+            }
+        },
+      }
+    );
   }
 
   function handleUpdateSessionEdit(e, sessionId) {
@@ -363,7 +426,7 @@ const ProgramInfo = () => {
     if (name === "vacancy_timeslot" || name === "vacancy_participant") {
       if (isNaN(numValue)) {
         console.log("check");
-        alert("Please enter a valid non-negative decimal number");
+        Toast("Please enter a valid non-negative decimal number", "warning");
         return;
       }
     }
@@ -406,47 +469,88 @@ const ProgramInfo = () => {
     });
   }
 
+  // function handleDateChange(e, sessionId, index) {
+  //   const newDate = e.target.value; // 獲取用戶輸入的日期
+  //   setSessionsInfo((prev) =>
+  //     prev.map((session) => {
+  //       if (session._id === sessionId) {
+  //         const updatedDates = [...Object.values(session.session_dates)];
+  //         updatedDates[index] = `${newDate}T${
+  //           updatedDates[index].split("T")[1]
+  //         }`; // 保留時間部分與新的日期結合
+  //         return {
+  //           ...session,
+  //           session_dates: updatedDates,
+  //         };
+  //       }
+  //       return session; // 返回未改變的 session
+  //     })
+  //   );
+  // }
+
+  // function handleTimeChange(e, sessionId, index) {
+  //   const newTime = e.target.value; // 獲取用戶輸入的時間
+  //   setSessionsInfo((prev) =>
+  //     prev.map((session) => {
+  //       if (session._id === sessionId) {
+  //         const updatedDates = [...Object.values(session.session_dates)];
+  //         const datePart = updatedDates[index].split("T")[0]; // 獲取原本的日期部分
+  //         // 組合成 ISO 格式，補全秒數和毫秒
+  //         updatedDates[index] = `${datePart}T${newTime}:00.000Z`;
+  //         return {
+  //           ...session,
+  //           session_dates: updatedDates,
+  //         };
+  //       }
+  //       return session; // 返回未改變的 session
+  //     })
+  //   );
+  // }
+
   function handleDateChange(e, sessionId, index) {
-    const newDate = e.target.value; // 獲取用戶輸入的日期
+    const newDate = e.target.value; // 用户输入的日期（yyyy-MM-dd 格式）
     setSessionsInfo((prev) =>
       prev.map((session) => {
         if (session._id === sessionId) {
           const updatedDates = [...Object.values(session.session_dates)];
-          updatedDates[index] = `${newDate}T${
-            updatedDates[index].split("T")[1]
-          }`; // 保留時間部分與新的日期結合
+          const timePart = updatedDates[index].split("T")[1]; // 获取原时间部分
+          const hkDateTime = `${newDate}T${timePart}`; // 合并新日期与原时间
+          updatedDates[index] = hkDateTime; // 直接存储香港时区的时间格式
           return {
             ...session,
             session_dates: updatedDates,
           };
         }
-        return session; // 返回未改變的 session
+        return session;
       })
     );
   }
 
   function handleTimeChange(e, sessionId, index) {
-    const newTime = e.target.value; // 獲取用戶輸入的時間
+    const newTime = e.target.value; // 用户输入的时间（hh:mm 格式）
     setSessionsInfo((prev) =>
       prev.map((session) => {
         if (session._id === sessionId) {
           const updatedDates = [...Object.values(session.session_dates)];
-          const datePart = updatedDates[index].split("T")[0]; // 獲取原本的日期部分
-          // 組合成 ISO 格式，補全秒數和毫秒
-          updatedDates[index] = `${datePart}T${newTime}:00.000Z`;
+          const datePart = updatedDates[index].split("T")[0]; // 获取原日期部分
+          const hkDateTime = `${datePart}T${newTime}:00.000`; // 合并原日期与新时间
+          updatedDates[index] = hkDateTime; // 直接存储香港时区的时间格式
           return {
             ...session,
             session_dates: updatedDates,
           };
         }
-        return session; // 返回未改變的 session
+        return session;
       })
     );
   }
 
   function handleRemoveSessionDate(sessionId, index, session_dates) {
     if (session_dates.length === 1) {
-      alert("this is the last session, at least 1 session for 1 program");
+      Toast(
+        "this is the last session, at least 1 session for 1 program",
+        "warning"
+      );
       return;
     }
     setSessionsInfo((prev) =>
@@ -464,22 +568,98 @@ const ProgramInfo = () => {
     );
   }
 
+  // function handleAddSessionDate(sessionId) {
+  //   const isoDate = isoDateFunction();
+  //   console.log("isoDate", isoDate);
+  //   setSessionsInfo((prev) =>
+  //     prev.map((session) => {
+  //       if (session._id === sessionId) {
+  //         const updatedDates = [...Object.values(session.session_dates)];
+  //         updatedDates.push(isoDate); // 將當前日期添加到 session_dates
+  //         return {
+  //           ...session,
+  //           session_dates: updatedDates,
+  //         };
+  //       }
+  //       return session; // 返回未改變的 session
+  //     })
+  //   );
+  // }
   function handleAddSessionDate(sessionId) {
     const isoDate = isoDateFunction();
     console.log("isoDate", isoDate);
+
+    // 将 ISO 时间转换为 Date 对象并减去 8 小时
+    const dateObj = new Date(isoDate);
+    const utcTimestamp = dateObj.getTime() - 8 * 60 * 60 * 1000; // 减去 8 小时
+    const utcIsoDate = new Date(utcTimestamp).toISOString(); // 转为 UTC 的 ISO 格式
+
+    // 更新 session_dates
     setSessionsInfo((prev) =>
       prev.map((session) => {
         if (session._id === sessionId) {
           const updatedDates = [...Object.values(session.session_dates)];
-          updatedDates.push(isoDate); // 將當前日期添加到 session_dates
+          updatedDates.push(utcIsoDate); // 添加减去 8 小时后的时间
           return {
             ...session,
             session_dates: updatedDates,
           };
         }
-        return session; // 返回未改變的 session
+        return session; // 返回未改变的 session
       })
     );
+  }
+
+  function handleRemoveSession(e, _id, numberOfParticipant) {
+    if (numberOfParticipant > 0) {
+      Toast(
+        `You have ${numberOfParticipant} participant for this session. Session cannot be removed`
+      );
+      return;
+    }
+    const response = Toast(
+      `Confirm to update? No revert can be made! (Input "Yes" to continue)`,
+      "warning",
+      {
+        withPrompt: true,
+        onPromptSubmit: (response) => {
+          if (response.toLowerCase() === "yes") {
+            try {
+              Toast("Changes Saved", "success");
+              deleteSessionByInactive(_id); // Perform deletion
+              toggleUpdateSessionEditing(e); // Update session editing state
+              fetchProgramInfo(); // Refresh program info
+            } catch (err) {
+              console.error("Error during session removal:", err);
+            }
+          } else {
+            console.log("Session removal canceled by user.");
+          }
+        },
+      }
+    );
+  }
+
+  async function deleteSessionByInactive(_id) {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/delete-turn-session-to-inactive`,
+        {
+          body: JSON.stringify({ _id }),
+          method: "DELETE",
+          headers: {
+            "Content-type": "application/json",
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch {
+      console.log("deleteSessionByInactive error", err);
+    }
   }
 
   // Session function ends
@@ -496,17 +676,23 @@ const ProgramInfo = () => {
   }
 
   function handleUpdateProgramInfo() {
-    const response = prompt(
-      "Confirm to update? No revert can be made (input 'yes' if confirm))"
+    const response = Toast(
+      `Confirm to update? No revert can be made! (Input "Yes" to continue)`,
+      "warning",
+      {
+        withPrompt: true,
+        onPromptSubmit: (response) => {
+          if (response && response.toLowerCase() === "yes") {
+            Toast("Changes Saved", "success");
+            setProgramInfo((prev) => ({
+              ...prev,
+              isEditing: !prev.isEditing,
+            }));
+            updateProgramInfo();
+          }
+        },
+      }
     );
-    if (response && response.toLowerCase() === "yes") {
-      alert("saved updated changes");
-      setProgramInfo((prev) => ({
-        ...prev,
-        isEditing: !prev.isEditing,
-      }));
-    }
-    updateProgramInfo();
   }
 
   function handleProgramEdit(e) {
@@ -516,7 +702,7 @@ const ProgramInfo = () => {
     if (name === "lesson_duration" || name === "program_price_per_lesson") {
       const numValue = Number(value);
       if (isNaN(numValue)) {
-        alert("Please enter a valid non-negative decimal number");
+        Toast("Please enter a valid non-negative decimal number", "warning");
       }
       if (numValue > 0 || value === "") {
         setProgramInfo((prev) => ({
@@ -575,15 +761,30 @@ const ProgramInfo = () => {
 
   function handleRemoveImage(e) {
     if (programInfo.program_image.length === 1) {
-      alert("this is the last image, at least 1 image for 1 program");
+      Toast("this is the last image, at least 1 image for 1 program", "info");
       return null;
     }
-    const response = prompt('Delete Image: Input "Yes" to confirm');
-    if (
-      response &&
-      response.toLowerCase() === "yes" &&
-      programInfo.program_image.length > 1
-    ) {
+    // const response = Toast('Delete Image: Input "Yes" to confirm', "warning", {
+    //   withPrompt: true,
+    //   onPromptSubmit: (response) => {
+    //     if (
+    //       response &&
+    //       response.toLowerCase() === "yes" &&
+    //       programInfo.program_image.length > 1
+    //     ) {
+    //       Toast("Image Deleted", "success");
+    //       setProgramInfo((prev) => ({
+    //         ...prev,
+    //         program_image: prev.program_image.filter(
+    //           (_, idx) => idx !== parseInt(e.target.name, 10)
+    //         ),
+    //       }));
+    //     }
+    //   },
+    // });
+
+    if (programInfo.program_image.length > 1) {
+      // Toast("Image Deleted", "success");
       setProgramInfo((prev) => ({
         ...prev,
         program_image: prev.program_image.filter(
@@ -628,7 +829,7 @@ const ProgramInfo = () => {
       </div>
       {/* --------------------------------分隔個條線--------------------------- */}
       <div className="flex w-full flex-col">
-        <div className="divider divider-primary mt-1 mb-1"></div>
+        <div className="divider divider-secondary mt-1 mb-1"></div>
       </div>
       {/* --------------------------------program detail--------------------------- */}
       <div className="flex justify-center">
@@ -639,7 +840,7 @@ const ProgramInfo = () => {
                 {/* -------------------------------EDIT---------------------------------- */}
                 {!isEditing ? (
                   <button
-                    className="btn absolute top-5 right-5"
+                    className="btn btn-primary absolute top-5 right-5"
                     onClick={toggleProgramEditing}
                   >
                     Edit Program Detail
@@ -647,11 +848,14 @@ const ProgramInfo = () => {
                 ) : (
                   <div className="relative">
                     <div className="absolute top-5 right-5">
-                      <button className="btn" onClick={handleUpdateProgramInfo}>
+                      <button
+                        className="btn btn-sm btn-success"
+                        onClick={handleUpdateProgramInfo}
+                      >
                         Save
                       </button>
                       <button
-                        className="btn btn-error"
+                        className="btn btn-sm"
                         onClick={toggleProgramEditing}
                         name="cancel"
                       >
@@ -700,20 +904,20 @@ const ProgramInfo = () => {
                           </div>
                           <div className="flex">
                             <p className="w-44 infoTitle mb-3">
-                              {`Lesson Duration: (mins)`}
+                              {`Lesson Duration (mins):`}
                             </p>
-                            <p>{lesson_duration}mins</p>
+                            <p>{lesson_duration} mins</p>
                           </div>
                           {/* -----------------image button-------------------- */}
                           <div>
                             <button
-                              className={"btn mt-2 mr-2 mb-2"}
+                              className={"btn btn-accent mt-2 mr-2 mb-2 btn-sm"}
                               onClick={handleShowImage}
                             >
                               {`Program Images`}
                             </button>
                             <button
-                              className={"btn"}
+                              className={"btn btn-accent btn-sm"}
                               onClick={handleUploadImage}
                             >
                               {`Upload Program Images`}
@@ -734,7 +938,7 @@ const ProgramInfo = () => {
                                   );
                                 })}
                             </div>
-                            {uploadImage && <ImageUpload />}
+                            {uploadImage && <ImageUpload prog_id={_id} />}
                           </div>
                         </>
                       ) : (
@@ -828,58 +1032,68 @@ const ProgramInfo = () => {
                             />
                           </div>
                           <div>
-                            <button className={"btn"} onClick={handleShowImage}>
-                              {`${showImage ? "Hide" : "Show"} Program Images`}
+                            <button
+                              className={"btn btn-accent btn-sm mb-2 mr-2"}
+                              onClick={handleShowImage}
+                            >
+                              {`Program Images`}
                             </button>
-                            {program_image.length > 0 &&
-                              showImage &&
-                              program_image.map((image, idx) => {
-                                return (
-                                  <Fragment key={idx}>
-                                    {
-                                      <img
-                                        key={idx}
-                                        src={
-                                          image ||
-                                          "https://via.placeholder.com/150?text=Placeholder"
+                            <button
+                              className={"btn btn-accent btn-sm mb-2"}
+                              onClick={handleUploadImage}
+                            >
+                              {`Upload Program Images`}
+                            </button>
+                            <div className="flex flex-wrap">
+                              {program_image.length > 0 &&
+                                showImage &&
+                                program_image.map((image, idx) => {
+                                  return (
+                                    <Fragment key={idx}>
+                                      <div className="flex flex-col mr-2">
+                                        {
+                                          <img
+                                            className="h-48"
+                                            key={idx}
+                                            src={
+                                              image ||
+                                              "https://via.placeholder.com/150?text=Placeholder"
+                                            }
+                                          />
                                         }
-                                      />
-                                    }
-                                    <input
-                                      name={`program_image+${idx}`}
-                                      value={
-                                        image ||
-                                        "https://via.placeholder.com/150?text=Placeholder"
-                                      }
-                                      onChange={handleProgramEdit}
-                                    />
-                                    <button
-                                      className={"btn"}
-                                      onClick={handleRemoveImage}
-                                      name={`${idx}`}
-                                    >
-                                      Remove Image
-                                    </button>
-                                  </Fragment>
-                                );
-                              })}
+                                        <input
+                                          name={`program_image+${idx}`}
+                                          value={
+                                            image ||
+                                            "https://via.placeholder.com/150?text=Placeholder"
+                                          }
+                                          onChange={handleProgramEdit}
+                                        />
+                                        <button
+                                          className={"btn btn-xs w-28 mb-2"}
+                                          onClick={handleRemoveImage}
+                                          name={`${idx}`}
+                                        >
+                                          Remove Image
+                                        </button>
+                                      </div>
+                                    </Fragment>
+                                  );
+                                })}
+                            </div>
                             {showImage && (
                               <div>
                                 <button
-                                  className={"btn"}
+                                  className={"btn btn-secondary btn-sm mt-4"}
                                   onClick={handleAddImage}
                                 >
-                                  Add New Image
+                                  Add Image
                                 </button>
                               </div>
                             )}
                           </div>
-                          <button className={"btn"} onClick={handleUploadImage}>
-                            {`${
-                              uploadImage ? "Hide Upload" : "Show Upload"
-                            } Program Images`}
-                          </button>
-                          {program_image.length > 0 &&
+
+                          {/* {program_image.length > 0 &&
                             showImage &&
                             program_image.map((image, idx) => {
                               return (
@@ -891,8 +1105,14 @@ const ProgramInfo = () => {
                                   }
                                 />
                               );
-                            })}
-                          {uploadImage && <ImageUpload />}
+                            })} */}
+                          {uploadImage && (
+                            <ImageUpload
+                              prog_id={_id}
+                              programInfo={programInfo}
+                              setProgramInfo={setProgramInfo}
+                            />
+                          )}
                         </>
                       )}
                     </div>
@@ -904,141 +1124,22 @@ const ProgramInfo = () => {
           {/* ------------------Session----------------- */}
           {/* -----------------Session Create Button-------------------- */}
           <div>
-            {/* {!sessionAdding ? (
-              <div>
-                <button className="btn" onClick={toggleCreateSessionEditing}>
-                  Add Session
-                </button>
-              </div>
-            ) : (
-              <div>
-                <button className="btn" onClick={handleCreateSessionInfo}>
-                  Save Session
-                </button>
-                <button
-                  className="btn error"
-                  name="cancel"
-                  onClick={(e) => toggleCreateSessionEditing(e)}
-                >
-                  Cancel
-                </button>
-                System Message:{" "}
-                {(sessionCreateSuccess && sessionCreateSuccess) ||
-                  (sessionCreateError && sessionCreateError) ||
-                  "None"}
-              </div>
-            )}
-            {sessionAdding && (
-              <div>
-                <div>
-                  Session Type:
-                  <select
-                    value={session_type}
-                    onChange={(e) => handleCreateSessionEdit(e)}
-                    name="session_type"
-                  >
-                    <option disabled defaultValue value="">
-                      Select a type
-                    </option>
-                    <option value="participant">participant</option>
-                    <option value="timeslot">timeslot</option>
-                  </select>
-                </div>
-                <div>
-                  Teacher:{" "}
-                  <input
-                    name="teacher"
-                    value={teacher}
-                    onChange={(e) => handleCreateSessionEdit(e)}
-                  />
-                </div>
-                <div>
-                  Dates:
-                  {session_dates.map((date, index) => {
-                    const [datePart, timePart] = date.split("T");
-                    return (
-                      <div key={index}>
-                        <input
-                          type="date"
-                          value={datePart}
-                          onChange={(e) => handleNewDateChange(e, index)}
-                        />
-                        <input
-                          type="time"
-                          value={timePart.split(".")[0]} // ignore ms
-                          onChange={(e) => handleNewTimeChange(e, index)}
-                        />
-                        <button
-                          className="btn"
-                          onClick={() => handleRemoveNewSessionDate(index)}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    );
-                  })}
-                  <button
-                    className="btn"
-                    onClick={(e) => handleAddNewSessionDate(e)}
-                  >
-                    Add New Session
-                  </button>
-                </div>
-                {session_type === "timeslot" && (
-                  <>
-                    <div>
-                      Timeslot Vacancy:{" "}
-                      <input
-                        name="vacancy_timeslot"
-                        value={vacancy_timeslot}
-                        onChange={(e) => handleCreateSessionEdit(e)}
-                      />
-                    </div>
-                    <div>
-                      Participant Vacancy:{" "}
-                      <input
-                        name="vacancy_participant"
-                        value={vacancy_participant}
-                        onChange={(e) => handleCreateSessionEdit(e)}
-                      />
-                    </div>
-                  </>
-                )}
-                {session_type === "participant" && (
-                  <>
-                    <div>
-                      Participant Vacancy:{" "}
-                      <input
-                        name="vacancy_participant"
-                        value={vacancy_participant}
-                        onChange={(e) => handleCreateSessionEdit(e)}
-                      />
-                    </div>
-                  </>
-                )}
-                <div>
-                  Session Notice:{" "}
-                  <input
-                    name="session_notice"
-                    value={session_notice}
-                    onChange={(e) => handleCreateSessionEdit(e)}
-                  />
-                </div>
-              </div>
-            )} */}
-            <div>
-              <button className="btn" onClick={handleCreateSessionInfo}>
-                Create Session
+            <div className="relative">
+              <button
+                className="btn btn-primary absolute top-5 right-5"
+                onClick={handleCreateSessionInfo}
+              >
+                Create
               </button>
             </div>
-            <div>
-              <div>
-                Session Type:
+            <div className="ml-5 mt-5">
+              <div className="flex">
+                <p className="w-28 infoTitle">Session Type:</p>
                 <select
                   value={session_type}
                   onChange={(e) => handleCreateSessionEdit(e)}
                   name="session_type"
-                  className="select select-bordered w-full max-w-xs select-sm"
+                  className="select select-bordered w-full max-w-xs select-sm mb-1"
                 >
                   <option disabled defaultValue value="">
                     Select a type
@@ -1047,8 +1148,8 @@ const ProgramInfo = () => {
                   <option value="timeslot">timeslot</option>
                 </select>
               </div>
-              <div>
-                Teacher:
+              <div className="flex">
+                <p className="w-28 infoTitle">Teacher:</p>
                 <input
                   name="teacher"
                   value={teacher}
@@ -1056,32 +1157,36 @@ const ProgramInfo = () => {
                   className="input input-bordered input-sm w-full max-w-xs mb-1"
                 />
               </div>
-              <button
-                className="btn"
-                onClick={(e) => handleAddNewSessionDate(e)}
-              >
-                Add New Session
-              </button>
+
               <div>
-                Dates:
+                <div className="flex">
+                  <p className="w-24 infoTitle">Dates & Time:</p>
+                  <button
+                    className="btn btn-accent btn-sm mb-1"
+                    onClick={(e) => handleAddNewSessionDate(e)}
+                  >
+                    +
+                  </button>
+                </div>
                 {session_dates.map((date, index) => {
                   const [datePart, timePart] = date.split("T");
+
                   return (
                     <div key={index}>
                       <input
                         type="date"
                         value={datePart}
                         onChange={(e) => handleNewDateChange(e, index)}
-                        className="input input-bordered input-sm w-56 max-w-xs mb-1"
+                        className="input input-bordered input-sm w-52 max-w-xs mb-1 mr-1"
                       />
                       <input
                         type="time"
                         value={timePart.split(".")[0]} // ignore ms
                         onChange={(e) => handleNewTimeChange(e, index)}
-                        className="input input-bordered input-sm w-56 max-w-xs mb-1"
+                        className="input input-bordered input-sm w-52 max-w-xs mb-1"
                       />
                       <button
-                        className="btn"
+                        className="btn btn-sm ml-2"
                         onClick={() => handleRemoveNewSessionDate(index)}
                       >
                         Remove
@@ -1092,80 +1197,92 @@ const ProgramInfo = () => {
               </div>
               {session_type === "timeslot" && (
                 <>
-                  <div>
-                    Timeslot Vacancy:{" "}
+                  <div className="flex">
+                    <p className="w-32 infoTitle">Timeslot Vacancy:</p>
                     <input
                       name="vacancy_timeslot"
                       value={vacancy_timeslot}
                       onChange={(e) => handleCreateSessionEdit(e)}
+                      className="input input-bordered input-sm w-full max-w-xs mb-1"
                     />
                   </div>
-                  <div>
-                    Participant Vacancy:{" "}
+                  <div className="flex">
+                    <p className="w-32 infoTitle">Participant Vacancy:</p>
                     <input
                       name="vacancy_participant"
                       value={vacancy_participant}
                       onChange={(e) => handleCreateSessionEdit(e)}
+                      className="input input-bordered input-sm w-full max-w-xs mb-1"
                     />
                   </div>
                 </>
               )}
               {session_type === "participant" && (
                 <>
-                  <div>
-                    Participant Vacancy:{" "}
+                  <div className="flex">
+                    <p className="w-32 infoTitle">Participant Vacancy:</p>
                     <input
                       name="vacancy_participant"
                       value={vacancy_participant}
                       onChange={(e) => handleCreateSessionEdit(e)}
+                      className="input input-bordered input-sm w-full max-w-xs mb-1"
                     />
                   </div>
                 </>
               )}
-              <div>
-                Session Notice:{" "}
+              <div className="flex">
+                <p className="w-28 infoTitle">Session Notice:</p>
                 <input
                   name="session_notice"
                   value={session_notice}
                   onChange={(e) => handleCreateSessionEdit(e)}
-                  className="input input-bordered input-sm w-full max-w-xs mb-1"
+                  className="input input-bordered input-sm w-full max-w-xs mb-4"
                 />
               </div>
-              System Message:{" "}
-              {(sessionCreateSuccess && sessionCreateSuccess) ||
-                (sessionCreateError && sessionCreateError) ||
-                "None"}
+              {/* ---------------------------warn msg------------------------ */}
+              {(sessionCreateSuccess && (
+                <p className="text-green-500">{`${sessionCreateSuccess}`}</p>
+              )) ||
+                (sessionCreateError && (
+                  <p className="text-red-500">{`${sessionCreateError}`}</p>
+                ))}
             </div>
           </div>
 
           {/* Session Edit Button */}
           <div>
             {!sessionUpdating ? (
-              <button className="btn" onClick={toggleUpdateSessionEditing}>
-                Edit Session Detail
-              </button>
-            ) : (
-              <>
-                <button className="btn" onClick={handleUpdateSessionInfo}>
-                  Save Session Detail
-                </button>
+              <div className="relative">
                 <button
-                  className="btn btn-error"
-                  name="cancel"
+                  className="btn btn-primary absolute top-5 right-5"
                   onClick={toggleUpdateSessionEditing}
                 >
-                  Cancel
+                  Edit All Sessions
                 </button>
-                <div>
-                  System Message:{" "}
-                  {(sessionUpdateSuccess && sessionUpdateSuccess) ||
-                    (sessionUpdateError && sessionUpdateError) ||
-                    "None"}
+              </div>
+            ) : (
+              <>
+                <div className="relative">
+                  <div className="absolute top-5 right-5">
+                    <button
+                      className="btn btn-sm btn-success"
+                      onClick={handleUpdateSessionInfo}
+                    >
+                      Save All Sessions
+                    </button>
+                    <button
+                      className="btn btn-sm"
+                      name="cancel"
+                      onClick={toggleUpdateSessionEditing}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               </>
             )}
             {/* Session */}
-            {sessionsInfo &&
+            {sessionsInfo[0]?._id &&
               sessionsInfo.map(
                 (
                   {
@@ -1182,41 +1299,78 @@ const ProgramInfo = () => {
                   },
                   idx
                 ) => {
-                  const dates = Object.values(session_dates).join(", ");
+                  const formattedDates = session_dates
+                    .map(formatDateToLocal)
+                    .join(", ");
+                  console.log("session_dates", session_dates);
+                  console.log("formattedDates", formattedDates);
                   {
                     if (!isEditing) {
                       return (
-                        <div key={_id}>
-                          <div>Session Type: {session_type}</div>
-                          <div>Teacher: {teacher}</div>
-                          <div>Dates: {dates}</div>
-                          {session_type === "timeslot" && (
-                            <div>Timeslot Vacancy: {vacancy_timeslot}</div>
-                          )}
-                          <div>Participant Vacancy: {vacancy_participant}</div>
-                          <div>
-                            Number of Enrolled Participant(s):{" "}
-                            {numberOfParticipant}
+                        <div key={_id} className="mt-5 ml-5">
+                          <div className="flex">
+                            <p className="w-52 infoTitle">Session Type:</p>
+                            <p>{session_type}</p>
                           </div>
-                          <div>
-                            Available Seats:{" "}
+                          <div className="flex">
+                            <p className="w-52 infoTitle">Teacher:</p>
+                            <p>{teacher}</p>
+                          </div>
+                          <div className="flex">
+                            <p className="w-52 infoTitle">Dates:</p>
+                            <p>{formattedDates}</p>
+                          </div>
+                          {session_type === "timeslot" && (
+                            <div className="flex">
+                              <p className="w-52 infoTitle">
+                                Timeslot Vacancy:
+                              </p>
+                              <p>{vacancy_timeslot}</p>
+                            </div>
+                          )}
+                          <div className="flex">
+                            <p className="w-52 infoTitle">
+                              Participant Vacancy:
+                            </p>
+                            <p> {vacancy_participant}</p>
+                          </div>
+                          <div className="flex">
+                            <p className="w-52 infoTitle">
+                              Number of Enrolled Participant(s):
+                            </p>
+                            <p>{numberOfParticipant}</p>
+                          </div>
+                          <div className="flex">
+                            <p className="w-52 infoTitle">Available Seats:</p>
                             {availableSeats !== 0 ? (
                               availableSeats
                             ) : (
-                              <span className="text-red-500">
-                                {availableSeats}
-                              </span>
+                              <p className="text-red-500">{availableSeats}</p>
                             )}
                           </div>
-                          <div>Session Notice: {session_notice}</div>
-                          <div>
-                            Session Id: {_id}
+                          <div className="flex">
+                            <p className="w-52 infoTitle">Session Notice:</p>
+                            <p> {session_notice}</p>
+                          </div>
+                          <div className="flex">
+                            <div className="flex items-center">
+                              <p className="w-52 infoTitle">Session Id:</p>{" "}
+                              <p className="opacity-60">{_id}</p>
+                            </div>
                             <button
-                              className={"btn"}
+                              className={"btn btn-accent btn-sm ml-2 mb-3"}
                               onClick={() => copyToClipboard(_id)}
                             >
                               Copy Session Id
                             </button>
+                          </div>
+                          <div>
+                            {/* {sessionUpdateSuccess && (
+                              <p className="text-green-500">{`${sessionUpdateSuccess}`}</p>
+                            )} */}
+                            {sessionUpdateError && (
+                              <p className="text-red-500">{`${sessionUpdateError}`}</p>
+                            )}
                           </div>
                           <hr />
                         </div>
@@ -1224,38 +1378,49 @@ const ProgramInfo = () => {
                     }
                     if (isEditing) {
                       return (
-                        <div key={_id}>
-                          <div>
-                            Session Type:{" "}
+                        <div key={_id} className="ml-5 mt-5">
+                          <div className="flex">
+                            <p className="w-28 infoTitle">Session Type:</p>
                             <select
                               value={session_type}
                               onChange={(e) => handleUpdateSessionEdit(e, _id)}
                               name="session_type"
+                              className="select select-bordered w-full max-w-xs select-sm mb-1"
                             >
                               <option value="participant">participant</option>
                               <option value="timeslot">timeslot</option>
                             </select>
                           </div>
-                          <div>
-                            Teacher:{" "}
+                          <div className="flex">
+                            <p className="w-28 infoTitle">Teacher:</p>
                             <input
                               name="teacher"
                               value={teacher}
                               onChange={(e) => handleUpdateSessionEdit(e, _id)}
+                              className="input input-bordered input-sm w-full max-w-xs mb-1"
                             />
                           </div>
                           <div>
-                            Dates:
+                            <div className="flex">
+                              <p className="w-28 infoTitle">Dates & Time:</p>
+                              <button
+                                className="btn btn-accent btn-sm mb-1"
+                                onClick={() => handleAddSessionDate(_id)}
+                              >
+                                +
+                              </button>
+                            </div>
                             {session_dates.map((date, index) => {
                               const [datePart, timePart] = date.split("T");
                               return (
                                 <div key={index}>
-                                  <input
+                                  {/* <input
                                     type="date"
                                     value={datePart}
                                     onChange={(e) =>
                                       handleDateChange(e, _id, index)
                                     }
+                                    className="input input-bordered input-sm w-52 max-w-xs mb-1 mr-1"
                                   />
                                   <input
                                     type="time"
@@ -1263,9 +1428,38 @@ const ProgramInfo = () => {
                                     onChange={(e) =>
                                       handleTimeChange(e, _id, index)
                                     }
+                                    className="input input-bordered input-sm w-52 max-w-xs mb-1"
+                                  /> */}
+                                  <input
+                                    type="date"
+                                    value={new Date(
+                                      session_dates[index]
+                                    ).toLocaleDateString("en-CA", {
+                                      timeZone: "Asia/Hong_Kong",
+                                    })} // 转为香港时区的日期
+                                    onChange={(e) =>
+                                      handleDateChange(e, _id, index)
+                                    }
+                                    className="input input-bordered input-sm w-52 max-w-xs mb-1 mr-1"
                                   />
+                                  <input
+                                    type="time"
+                                    value={new Date(
+                                      session_dates[index]
+                                    ).toLocaleTimeString("en-US", {
+                                      timeZone: "Asia/Hong_Kong",
+                                      hour12: false, // 确保为 24 小时制或适配 DaisyUI
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })} // 转为香港时区的时间
+                                    onChange={(e) =>
+                                      handleTimeChange(e, _id, index)
+                                    }
+                                    className="input input-bordered input-sm w-52 max-w-xs mb-1"
+                                  />
+
                                   <button
-                                    className="btn"
+                                    className="btn btn-sm ml-2"
                                     onClick={() =>
                                       handleRemoveSessionDate(
                                         _id,
@@ -1279,56 +1473,81 @@ const ProgramInfo = () => {
                                 </div>
                               );
                             })}
-                            <button
-                              className="btn"
-                              onClick={() => handleAddSessionDate(_id)}
-                            >
-                              Add New Session
-                            </button>
                           </div>
-                          {vacancy_timeslot && (
-                            <div>
-                              Timeslot Vacancy:{" "}
+                          {session_type === "timeslot" && vacancy_timeslot && (
+                            <div className="flex">
+                              <p className="w-32 infoTitle">
+                                Timeslot Vacancy:
+                              </p>
                               <input
                                 name="vacancy_timeslot"
                                 value={vacancy_timeslot}
                                 onChange={(e) =>
                                   handleUpdateSessionEdit(e, _id)
                                 }
+                                className="input input-bordered input-sm w-full max-w-xs mb-1"
                               />
                             </div>
                           )}
-                          <div>
-                            Participant Vacancy:{" "}
+                          <div className="flex">
+                            <p className="w-32 infoTitle">
+                              Participant Vacancy:
+                            </p>
                             <input
                               name="vacancy_participant"
                               value={vacancy_participant}
                               onChange={(e) => handleUpdateSessionEdit(e, _id)}
+                              className="input input-bordered input-sm w-full max-w-xs mb-1"
                             />
                           </div>
-                          <div>
-                            Number of Enrolled Participant(s):{" "}
-                            {numberOfParticipant}
+                          <div className="flex">
+                            <p className="w-52 infoTitle">
+                              Number of Enrolled Participant(s):
+                            </p>
+                            <p className="mb-1">{numberOfParticipant}</p>
                           </div>
-                          <div>
-                            Available Seats: N/A when session is updating
+                          <div className="flex">
+                            <p className="w-32 infoTitle">Available Seats:</p>{" "}
+                            <p className="mb-1">N/A</p>
                           </div>
-                          <div>
-                            Session Notice:{" "}
+                          <div className="flex">
+                            <p className="w-32 infoTitle">Session Notice:</p>
                             <input
                               name="session_notice"
                               value={session_notice}
                               onChange={(e) => handleUpdateSessionEdit(e, _id)}
+                              className="input input-bordered input-sm w-full max-w-xs mb-1"
                             />
                           </div>
-                          <div>
-                            Session Id: {_id}
+                          <div className="flex">
+                            <div className="flex items-center">
+                              <p className="w-32 infoTitle">Session Id:</p>
+                              <p className="opacity-60">{_id}</p>
+                            </div>
                             <button
-                              className={"btn"}
+                              className={"btn btn-accent btn-sm ml-2 mb-3"}
                               onClick={() => copyToClipboard(_id)}
                             >
                               Copy Session Id
                             </button>
+                          </div>
+                          <div className="relative">
+                            <button
+                              className="btn btn-sm btn-error absolute bottom-3 right-5"
+                              onClick={(e) =>
+                                handleRemoveSession(e, _id, numberOfParticipant)
+                              }
+                            >
+                              Remove Session
+                            </button>
+                          </div>
+                          <div>
+                            {/* {(sessionUpdateSuccess && (
+                              <p className="text-green-500">{`${sessionUpdateSuccess}`}</p>
+                            )) || */}
+                            {sessionUpdateError && (
+                              <p className="text-red-500">{`${sessionUpdateError}`}</p>
+                            )}
                           </div>
                           <hr />
                         </div>

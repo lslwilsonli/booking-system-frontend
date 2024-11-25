@@ -1,9 +1,7 @@
 "use client";
-// import Layout from "../components/Layout";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-// import axios from "axios";
 
 export const SignUp = () => {
   const [data, setData] = useState({
@@ -17,28 +15,26 @@ export const SignUp = () => {
   });
 
   const [errors, setErrors] = useState({});
-  const [error, setError] = useState({});
+  const [returnError, setReturnError] = useState({});
 
   const router = useRouter();
 
   const handleOnChange = (e) => {
     const { name, value } = e.target;
-    setData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+
+    if (name === "telephone_no") {
+      const telephone = value.replace(/\D/g, "");
+      setData((prev) => ({
+        ...prev,
+        [name]: telephone,
+      }));
+    } else {
+      setData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
-
-  // Do it later
-  // const handleTelephoneChange = (e) => {
-  //   const { name } = e.target;
-  //   const telephone = name.value.replace(/\D/g, "");
-
-  //   setData((prev) => ({
-  //     ...prev,
-  //     telephone_no: telephone,
-  //   }));
-  // };
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -53,45 +49,47 @@ export const SignUp = () => {
       password,
     } = data;
 
-    // Log the data being sent
-    // console.log("Form data to send:", {
-    //   merchant_username,
-    //   merchant_email,
-    //   telephone_no,
-    //   organization,
-    //   password,
-    //   telephone_no,
-    // });
-
-    // It need to be check at the backend
-    // const existUser = await merchant_username.findOne({ merchant_username });
-    // if (existUser) {
-    //   newErrors.user_error = "此用戶名已使用，請使用另一名稱";
-    // }
+    // Check the user name format
+    if (!merchant_username) {
+      newErrors.user_error = "Please enter a username";
+    }
 
     // Check telephone number format
     const validDigits = ["2", "3", "5", "6", "7", "8", "9"];
-    if (telephone_no.length !== 8) {
-      newErrors.telephone_error = "電話號碼必須為8位數字";
+    if (!telephone_no) {
+      newErrors.telephone_error = "Please enter a phone number";
+    } else if (telephone_no.length !== 8) {
+      newErrors.telephone_error = "The phone number must be exactly 8 digits";
     } else if (
       !validDigits.includes(telephone_no[0]) ||
       telephone_no.slice(0, 3) === "999"
     ) {
-      newErrors.telephone_error = "電話號碼必須為有效數字";
+      newErrors.telephone_error = "The phone number must be a valid digit";
     }
 
     // Check email format
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(merchant_email)) {
-      newErrors.email_error = "電子郵件無效";
+    if (!merchant_email) {
+      newErrors.email_error = "Please enter an email address";
+    } else if (!emailRegex.test(merchant_email)) {
+      newErrors.email_error = "The email address is invalid";
     }
 
     // Check password format
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
-    if (password.length < 8) {
-      newErrors.password_error = "密碼必須至少長度為8";
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
+    if (!password) {
+      newErrors.password_error = "Please enter a password";
+    } else if (password.length < 8) {
+      newErrors.password_error =
+        "The password must be at least 8 characters long";
     } else if (!passwordRegex.test(password)) {
-      newErrors.password_error = "密碼必須至少包含一個數字和一個英文字";
+      newErrors.password_error =
+        "The password must contain at least one numeric character, one lower letter and one upper case letter";
+    }
+
+    // Check organization format
+    if (!organization) {
+      newErrors.organization_error = "Please enter your organization name";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -107,121 +105,44 @@ export const SignUp = () => {
       password &&
       Object.keys(newErrors).length === 0
     ) {
-      const res = await fetch("http://localhost:3030/register", {
-        method: "POST",
-        body: JSON.stringify({
-          merchant_username,
-          merchant_email,
-          telephone_no,
-          organization,
-          password,
-        }),
-        headers: {
-          "Content-type": "application/json",
-        },
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/register`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            merchant_username,
+            merchant_email,
+            telephone_no,
+            organization,
+            password,
+          }),
+          headers: {
+            "Content-type": "application/json",
+          },
+        }
+      );
       if (res.ok) {
         const responseData = await res.json();
         console.log("Response: ", responseData);
         router.push("/");
       } else {
         const errorData = await res.json();
-        setError(errorData.error || "An error occurred");
+        setReturnError(errorData.errors || "An error occurred");
       }
     } else {
-      setError("Please fill in all fields.");
+      setReturnError("Please fill in all fields.");
     }
   }
+
   return (
     <div className="flex flex-row justify-center">
       <div className="artboard phone-3">
         <form onSubmit={handleSubmit}>
-          <div className="center">註冊帳號</div>
-          {/* <div>
-            <p>帳戶名稱</p>
-            <input
-              name="merchant_username"
-              type="text"
-              placeholder="帳戶名稱"
-              value={data.merchant_username}
-              onChange={handleOnChange}
-              required
-              style={{ border: "1px solid black" }}
-            ></input>
+          <div className="flex justify-center mt-2">
+            <div>Create Account</div>
           </div>
-          {errors.user_error && (
-            <span style={{ color: "red" }}>{errors.user_error}</span>
-          )}
-          <div>
-            <p>電郵</p>
-            <input
-              name="merchant_email"
-              type="text"
-              placeholder="電郵"
-              value={data.merchant_email}
-              onChange={handleOnChange}
-              required
-              style={{ border: "1px solid black" }}
-            ></input>
-          </div>
-          <div className="ErrorLabel" style={{ height: "24px" }}>
-            {errors.email_error && (
-              <span style={{ color: "red" }}>{errors.email_error}</span>
-            )}
-          </div>
-          <div>
-            <p>電話</p>
-            <input
-              name="telephone_no"
-              type="text"
-              placeholder="電話"
-              value={data.telephone_no}
-              onChange={handleOnChange}
-              required
-              style={{ border: "1px solid black" }}
-            ></input>
-          </div>
-          <div className="ErrorLabel" style={{ height: "24px" }}>
-            {errors.telephone_error && (
-              <span style={{ color: "red" }}>{errors.telephone_error}</span>
-            )}
-          </div>
-          <div>
-            <p>公司名稱</p>
-            <input
-              name="organization"
-              type="text"
-              placeholder="公司名稱"
-              value={data.organization}
-              onChange={handleOnChange}
-              required
-              style={{ border: "1px solid black" }}
-            ></input>
-          </div>
-          <div className="ErrorLabel" style={{ height: "24px" }}></div>
-          <div>
-            <p>密碼</p>
-            <input
-              name="password"
-              type="password"
-              placeholder="密碼"
-              value={data.password}
-              onChange={handleOnChange}
-              required
-              style={{ border: "1px solid black" }}
-            ></input>
-          </div>
-          <div className="ErrorLabel" style={{ height: "24px" }}>
-            {errors.password_error && (
-              <span style={{ color: "red" }}>{errors.password_error}</span>
-            )}
-          </div>
-          <button type="submit" className="btn btn-active">
-            註冊
-          </button> */}
-
           <div className="label">
-            <span className="label-text">帳戶名稱</span>
+            <span className="label-text">Username</span>
           </div>
           <label className="input input-bordered flex items-center gap-2">
             <svg
@@ -236,19 +157,18 @@ export const SignUp = () => {
               name="merchant_username"
               type="text"
               className="grow"
-              placeholder="帳戶名稱"
+              placeholder="Username"
               value={data.merchant_username}
               onChange={handleOnChange}
-              required
             />
           </label>
-          <div className="ErrorLabel" style={{ height: "24px" }}>
+          <div className="ErrorLabel" style={{ height: "22px" }}>
             {errors.user_error && (
               <span style={{ color: "red" }}>{errors.user_error}</span>
             )}
           </div>
           <div className="label">
-            <span className="label-text">電郵</span>
+            <span className="label-text">Email</span>
           </div>
           <label className="input input-bordered flex items-center gap-2">
             <svg
@@ -264,19 +184,18 @@ export const SignUp = () => {
               name="merchant_email"
               type="text"
               className="grow"
-              placeholder="電郵"
+              placeholder="Email"
               value={data.merchant_email}
               onChange={handleOnChange}
-              required
             />
           </label>
-          <div className="ErrorLabel" style={{ height: "24px" }}>
+          <div className="ErrorLabel" style={{ height: "22px" }}>
             {errors.email_error && (
               <span style={{ color: "red" }}>{errors.email_error}</span>
             )}
           </div>
           <div className="label">
-            <span className="label-text">電話</span>
+            <span className="label-text">Phone Number</span>
           </div>
           <label className="input input-bordered flex items-center gap-2">
             <svg
@@ -294,19 +213,19 @@ export const SignUp = () => {
               name="telephone_no"
               type="text"
               className="grow"
-              placeholder="電話"
+              placeholder="Phone Number"
               value={data.telephone_no}
               onChange={handleOnChange}
-              required
+              maxLength="8"
             ></input>
           </label>
-          <div className="ErrorLabel" style={{ height: "24px" }}>
+          <div className="ErrorLabel" style={{ height: "22px" }}>
             {errors.telephone_error && (
               <span style={{ color: "red" }}>{errors.telephone_error}</span>
             )}
           </div>
           <div className="label">
-            <span className="label-text">公司名稱</span>
+            <span className="label-text">Organization</span>
           </div>
           <label className="input input-bordered flex items-center gap-2">
             <svg
@@ -324,15 +243,18 @@ export const SignUp = () => {
               name="organization"
               type="text"
               className="grow"
-              placeholder="公司名稱"
+              placeholder="Organization"
               value={data.organization}
               onChange={handleOnChange}
-              required
             />
           </label>
-          <div className="ErrorLabel" style={{ height: "24px" }}></div>
+          <div className="ErrorLabel" style={{ height: "22px" }}>
+            {errors.organization_error && (
+              <span style={{ color: "red" }}>{errors.organization_error}</span>
+            )}
+          </div>
           <div className="label">
-            <span className="label-text">密碼</span>
+            <span className="label-text">Password</span>
           </div>
           <label className="input input-bordered flex items-center gap-2">
             <svg
@@ -350,28 +272,40 @@ export const SignUp = () => {
               name="password"
               type="password"
               className="grow"
-              placeholder="密碼"
+              placeholder="Password"
               value={data.password}
               onChange={handleOnChange}
-              required
             />
           </label>
-          <div className="ErrorLabel" style={{ height: "24px" }}>
+          <div className="ErrorLabel" style={{ height: "auto" }}>
             {errors.password_error && (
               <span style={{ color: "red" }}>{errors.password_error}</span>
             )}
           </div>
-          <button type="submit" className="btn btn-active">
-            註冊
+          <button type="submit" className="btn btn-active mt-2">
+            Create
           </button>
         </form>
-        <p className="mt-2">
-          已有帳號？
+        <div
+          className="ErrorLabel"
+          style={{ height: "auto", fontSize: "15px" }}
+        >
+          {returnError.length > 0 &&
+            returnError.map((el, index) => {
+              return (
+                <div key={index} style={{ color: "red" }}>
+                  {el}
+                </div>
+              );
+            })}
+        </div>
+        <p className="mt-1">
+          Already have an account？
           <Link
             href="/"
             className="link link-hover underline underline-offset-2"
           >
-            按此登入
+            Login
           </Link>
         </p>
       </div>

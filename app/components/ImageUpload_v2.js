@@ -1,20 +1,28 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 
-const ImageUpload = () => {
+const ImageUpload = ({ prog_id, programInfo, setProgramInfo }) => {
   const [error, setError] = useState(""); // set the error message
+  const [Success, setSuccess] = useState(""); // set the successful message
+
   const [linkError, setLinkError] = useState(""); // set the error message for website link
+  const [linkSuccess, setLinkSuccess] = useState(""); // set the successful message for website link
+
   const [file, setFile] = useState(null);
   const [filepath, setFilePath] = useState(""); // Store the Base64 URL for sending
   const [downloadFilePath, setDownloadFilePath] = useState(""); // Store the optimized URL
   const [previewURL, setPreviewURL] = useState(null); // set the preview imgae
   const [isValid, setIsValid] = useState(false); // check if the image type is valid
   const [link, setLink] = useState(""); // the entered website link
+  const [isLinkImageLoading, setIsLinkImageLoading] = useState(false);
+  const [isFileImageLoading, setIsFileImageLoading] = useState(false);
 
   const filePickerRef = useRef();
   const token = localStorage.getItem("token");
 
   const handleFileSelect = (selectedFile) => {
+    setError("");
+    setSuccess("");
     setFile(selectedFile);
   };
 
@@ -28,14 +36,23 @@ const ImageUpload = () => {
         setFile(pickedFile);
         setIsValid(true);
         setError("");
+
+        // // Create a preview URL for the selected file
+        // const fileReader = new FileReader();
+        // fileReader.onload = () => {
+        //   setPreviewURL(fileReader.result); // Set the preview URL
+        //   setFilePath(fileReader.result); // Set the Base64 URL
+        // };
+        // fileReader.readAsDataURL(pickedFile); // Read the new file
         handleFileSelect(pickedFile); // Handle file selection
       } else {
         setIsValid(false);
         setError("Image format error");
       }
     } else {
+      // If no file is selected
       setIsValid(false);
-      setError("Please select a file");
+      setError("");
     }
   };
 
@@ -44,9 +61,12 @@ const ImageUpload = () => {
   };
 
   const handleLinkOnSubmit = async () => {
+    setLinkError("");
+    setLinkSuccess("");
     if (!link) {
       setLinkError("Please enter the URL");
     } else {
+      setIsLinkImageLoading(true);
       const newLink = link.trim(); // remove space from the start and at the end
 
       const formattedLink =
@@ -59,24 +79,35 @@ const ImageUpload = () => {
         setLinkError("Invalid URL format");
       } else {
         try {
-          const response = await fetch("http://localhost:3030/upload-image", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ image: formattedLink }),
-          });
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_BACKEND_API}/upload-image`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ image: formattedLink, prog_id: prog_id }),
+            }
+          );
+          setIsLinkImageLoading(false);
 
           if (response.ok) {
-            setLinkError("Successfully uploaded");
+            const data = await response.json();
+
+            setLinkSuccess("Successfully uploaded");
             setLink("");
+            // setProgramInfo((prev) => ({
+            //   ...prev,
+            //   program_image: [...prev.program_image, data.imageURL],
+            // }));
           } else {
             setLinkError("Unable to connect to server");
           }
         } catch (error) {
           console.log("The error is ", error);
           setLinkError("Unable to connect to server");
+          setIsLinkImageLoading(false);
         }
       }
     }
@@ -94,6 +125,7 @@ const ImageUpload = () => {
 
   const pickImageHandler = () => {
     filePickerRef.current.click();
+    setSuccess("");
   };
 
   const handleOnSubmit = async () => {
@@ -109,16 +141,21 @@ const ImageUpload = () => {
       const base64String = reader.result; // This is the Base64 string
 
       try {
-        const response = await fetch("http://localhost:3030/upload-image", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json", // Set content type to JSON
-          },
-          body: JSON.stringify({ image: base64String }), // Send Base64 in JSON
-        });
+        setIsFileImageLoading(true);
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_API}/upload-image`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json", // Set content type to JSON
+            },
+            body: JSON.stringify({ image: base64String, prog_id: prog_id }), // Send Base64 in JSON
+          }
+        );
 
         console.log("Response from server:", response);
+        setIsFileImageLoading(false);
 
         if (!response.ok) {
           throw new Error("Unable to upload image");
@@ -126,17 +163,63 @@ const ImageUpload = () => {
 
         const data = await response.json();
         console.log("Image sent successfully!", data);
-        setError("Picture uploaded successfully");
+        setSuccess("Picture uploaded successfully");
+        setFile(null);
+        setFilePath("");
+        setPreviewURL(null);
         setDownloadFilePath(data.imageURL); // return the URL from backend
       } catch (err) {
         console.error("Error during upload:", err);
         setError("Unable to upload image");
+        setIsFileImageLoading(false);
       }
     };
 
     reader.onerror = () => {
       setError("Unable to read image");
+      setIsLoading(false);
     };
+  };
+
+  // Code for drag-and-drop upload image function
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragEnter = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+
+    if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+      const droppedFile = event.dataTransfer.files[0];
+      const validTypes = ["image/jpeg", "image/png", "image/jpg"];
+      if (validTypes.includes(droppedFile.type)) {
+        setFile(droppedFile);
+        setIsValid(true);
+        setError("");
+        handleFileSelect(droppedFile);
+      } else {
+        setIsValid(false);
+        setError("Image format error");
+      }
+    }
   };
 
   return (
@@ -149,19 +232,24 @@ const ImageUpload = () => {
         accept=".jpg,.png,.jpeg,.jfif"
         onChange={pickedHandler}
       />
-      <div>
+      <div
+        onDragEnter={handleDragEnter} // for drag-and-drop upload image function
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         {previewURL && (
           <img className="w-48 h-48" src={previewURL} alt="Preview" />
         )}
         {!previewURL && (
-          <p className="w-48 h-48 border-dotted border-8 flex items-center justify-center">
+          <p className="w-48 h-48 border-4 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
             Picture preview
           </p>
         )}
       </div>
       <div>
         <button
-          className="btn mt-2 mb-2 text-xs"
+          className="btn mt-2 btn-secondary mb-2 text-xs btn-sm"
           type="button"
           onClick={pickImageHandler}
         >
@@ -170,30 +258,55 @@ const ImageUpload = () => {
       </div>
       {!isValid && <div>{error}</div>}
       <div>
-        {!!file && (
-          <button className="btn" type="button" onClick={handleOnSubmit}>
+        {!!file && !isFileImageLoading && (
+          <button
+            className="btn btn-sm btn-secondary"
+            type="button"
+            onClick={handleOnSubmit}
+          >
             Send
+          </button>
+        )}
+        {isFileImageLoading && (
+          <button
+            className="btn btn-sm btn-secondary"
+            type="button"
+            disabled={true}
+          >
+            Uploading ...
           </button>
         )}
       </div>
       {error && <div style={{ color: "red" }}>{error}</div>}
+      {Success && <div style={{ color: "green" }}>{Success}</div>}
       <p>or enter a URL link:</p>
       <input
         name="link"
         type="text"
         value={link}
         onChange={handleOnChange}
-        className="border-solid input input-bordered input-sm w-full max-w-xs mb-1"
+        className="border-solid input input-bordered input-sm w-full max-w-xs"
         placeholder="URL Link"
       />
-      <button
-        className="btn text-xs ml-2"
-        type="button"
-        onClick={handleLinkOnSubmit}
-      >
-        Send
-      </button>
+      {!isLinkImageLoading ? (
+        <button
+          className="btn btn-sm btn-secondary text-xs ml-2"
+          type="button"
+          onClick={handleLinkOnSubmit}
+        >
+          Send
+        </button>
+      ) : (
+        <button
+          className="btn btn-sm btn-secondary text-xs ml-2"
+          type="button"
+          disabled={true}
+        >
+          Uploading ...
+        </button>
+      )}
       {linkError && <div style={{ color: "red" }}>{linkError}</div>}
+      {linkSuccess && <div style={{ color: "green" }}>{linkSuccess}</div>}
       {/* {downloadFilePath && <img src={downloadFilePath} alt="Uploaded" />} */}
     </>
   );
