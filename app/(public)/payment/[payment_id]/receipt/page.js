@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import Toast from "@/app/components/Toast";
 
 export default function Payment() {
   const { payment_id } = useParams();
@@ -62,6 +63,20 @@ export default function Payment() {
     }
   }
 
+  // Copy the URL function
+  function copyToClipboard(payment_id) {
+    navigator.clipboard
+      .writeText(
+        `${process.env.NEXT_PUBLIC_FRONTEND_API}/payment/${payment_id}/receipt`
+      )
+      .then(() => {
+        Toast(`Receipt URL Link copied to clipboard!`, "success");
+      })
+      .catch((err) => {
+        console.error("Failed to copy: ", err);
+      });
+  }
+
   return (
     <div className="p-4">
       {/* Step Indicator */}
@@ -73,18 +88,21 @@ export default function Payment() {
       </ul>
 
       {/* Success Message */}
-      <div className="text-center my-12">
-        <h1 className="text-2xl font-bold mb-2">
-          Congratulations,{" "}
+      <div className="text-center my-12 flex flex-col gap-3">
+        <h1 className="text-2xl font-bold">
+          {" "}
           <span className="text-primary italic">
             {paymentInfo?.participant_name}
           </span>{" "}
-          !
+          , your enrollment is reserved.
         </h1>
-        <h2 className="text-xl font-bold mb-4">Your enrollment is confirmed</h2>
+        <p>We will contact you once the program is confirmed.</p>
         <div className="bg-base-100">
-          <p className="badge badge-neutral badge-outline text-base p-5">
-            Please save this receipt for your records
+          <p
+            className="cursor-pointer btn"
+            onClick={() => copyToClipboard(payment_id)}
+          >
+            Please copy this URL for your record
           </p>
         </div>
       </div>
@@ -166,6 +184,10 @@ export default function Payment() {
 
                 {/* Payment Summary */}
                 <div className="space-y-3">
+                  <span className="text-sm opacity-75 italic">
+                    *Payment status will change to 'completed' when the
+                    enrollment is confirmed.
+                  </span>
                   <div className="flex justify-between text-sm opacity-75">
                     <span>Payment Status</span>
                     <span className="badge badge-success">

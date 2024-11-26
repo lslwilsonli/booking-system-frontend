@@ -57,7 +57,7 @@ const Profile = () => {
           }
         );
 
-        console.log("Profile fetch response:", response);
+        // console.log("Profile fetch response:", response);
         // setIsLogin(response.ok);
 
         if (!response.ok) {

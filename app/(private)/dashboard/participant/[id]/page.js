@@ -1,9 +1,10 @@
 "use client";
 import "../../../../globals.css";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Toast from "@/app/components/Toast";
+import Loading from "@/app/components/Loading";
 
 function formatDateToLocal(dateString) {
   const date = new Date(dateString);
@@ -35,6 +36,7 @@ const ParticipantInfo = () => {
   const [sessionIds, setSessionIds] = useState([""]);
   const [updateSessionErrorMsg, setUpdateSessionErrorMsg] = useState("");
   const [updateSessionSuccessMsg, setUpdateSessionSuccessMsg] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   if (!token) {
     Toast("No authorization token found.", "error");
@@ -46,6 +48,7 @@ const ParticipantInfo = () => {
   }, []);
 
   async function fetchParticipants() {
+    setIsLoading(true);
     try {
       const result = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_API}/all-participants`,
@@ -78,8 +81,16 @@ const ParticipantInfo = () => {
         Toast("Participant not found.", "info");
       }
       setProgramDataPackage(sessionResultWithProgramId);
+
+      if (!result.ok) {
+        console.error("Participants Details fetch fail");
+      } else {
+        setIsLoading(false);
+      }
     } catch (err) {
-      console.log(err);
+      throw new Error("Failed Token");
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -318,224 +329,235 @@ const ParticipantInfo = () => {
 
   return (
     <>
-      {/* --------------------------------------Page title----------------------------------- */}
-      <h1 className="text-3xl mt-4 mb-2">Participant Detail Page</h1>
-      <div className="breadcrumbs text-sm">
-        <ul>
-          <li>
-            <Link href="../../dashboard">Home</Link>
-          </li>
-          <li>
-            <Link href="../participant">Participant</Link>
-          </li>
-          <li>
-            <a>Participant Detail</a>
-          </li>
-        </ul>
-      </div>
-      {/* --------------------------------分隔個條線--------------------------- */}
-      <div className="flex w-full flex-col">
-        <div className="divider divider-secondary mt-1 mb-1"></div>
-      </div>
+      {isLoading && <Loading />}
+      {!isLoading && (
+        <Fragment>
+          {/* --------------------------------------Page title----------------------------------- */}
+          <h1 className="text-3xl mt-4 mb-2">Participant Detail Page</h1>
+          <div className="breadcrumbs text-sm">
+            <ul>
+              <li>
+                <Link href="../../dashboard">Home</Link>
+              </li>
+              <li>
+                <Link href="../participant">Participant</Link>
+              </li>
+              <li>
+                <a>Participant Detail</a>
+              </li>
+            </ul>
+          </div>
+          {/* --------------------------------分隔個條線--------------------------- */}
+          <div className="flex w-full flex-col">
+            <div className="divider divider-secondary mt-1 mb-1"></div>
+          </div>
 
-      {/* ---------------------------------parti detail------------------------- */}
+          {/* ---------------------------------parti detail------------------------- */}
 
-      <div className="flex justify-center">
-        <div className="mt-6 stats stats-vertical shadow w-10/12">
-          <div className="stat">
-            {!isEditing
-              ? //read
-                _id && (
-                  <div key={_id}>
-                    <div className="flex mb-2 items-center justify-between">
-                      <div className="flex">
-                        <p className="w-24 infoTitle">Name:</p>
-                        <p> {participant_name}</p>
-                      </div>
+          <div className="flex justify-center">
+            <div className="mt-6 stats stats-vertical shadow w-10/12">
+              <div className="stat">
+                {!isEditing
+                  ? //read
+                    _id && (
+                      <div key={_id}>
+                        <div className="flex mb-2 items-center justify-between">
+                          <div className="flex">
+                            <p className="w-24 infoTitle">Name:</p>
+                            <p> {participant_name}</p>
+                          </div>
 
-                      <button
-                        className="btn btn-primary w-16"
-                        onClick={toggleParticipantEditing}
-                      >
-                        Edit
-                      </button>
-                    </div>
-                    <div className="flex mb-4">
-                      <p className="w-24 infoTitle">Tel:</p>
-                      <p> {telephone_no}</p>
-                    </div>
-                    <div className="flex items-top mb-4">
-                      <p className="w-24 infoTitle">remarks:</p>
-                      <div>
-                        {merchants_remarks && <div>{merchants_remarks}</div>}
-                      </div>
-                    </div>
-                  </div>
-                )
-              : //update
-                _id && (
-                  <div key={_id}>
-                    <div className="flex mb-2 items-center justify-between">
-                      <div className="flex">
-                        <p className="w-36 infoTitle">Name:</p>
-                        <input
-                          name="participant_name"
-                          value={participant_name}
-                          onChange={handleParticipantEdit}
-                          className="input input-bordered input-sm w-full max-w-xs mb-1"
-                        />
-                      </div>
-
-                      <>
-                        <div className="flex">
                           <button
-                            className="btn btn-success"
-                            onClick={handleUpdateParticipantInfo}
-                          >
-                            Save
-                          </button>
-                          <button
-                            className="btn "
+                            className="btn btn-primary w-16"
                             onClick={toggleParticipantEditing}
-                            name="cancel"
                           >
-                            Cancel
+                            Edit
                           </button>
                         </div>
-                      </>
-                    </div>
-                    <div className="flex mb-4">
-                      <p className="w-24 infoTitle">Tel:</p>
-                      <input
-                        name="telephone_no"
-                        value={telephone_no}
-                        onChange={handleParticipantEdit}
-                        className="input input-bordered input-sm w-60 max-w-xs mb-1"
-                        maxLength={8}
-                      />
-                    </div>
-                    <div className="flex items-top mb-4">
-                      <p className="w-24 infoTitle">remarks:</p>
-                      <div>
-                        <textarea
-                          name="merchants_remarks" // 使用统一的 name
-                          value={merchants_remarks || ""} // 显示当前的备注内容
-                          onChange={handleParticipantEdit} // 更新备注内容
-                          className="textarea textarea-bordered w-96 !important"
-                        />
+                        <div className="flex mb-4">
+                          <p className="w-24 infoTitle">Tel:</p>
+                          <p> {telephone_no}</p>
+                        </div>
+                        <div className="flex items-top mb-4">
+                          <p className="w-24 infoTitle">remarks:</p>
+                          <div>
+                            {merchants_remarks && (
+                              <div>{merchants_remarks}</div>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                )}
-          </div>
-          {/* -----------------------------------add session----------------------------------- */}
-          {participant._id && (
-            <div className="flex mt-2 mb-2 justify-between">
-              <div className="ml-6">
-                <div className="flex items-center mb-4 mt-3">
-                  <div className="w-24 infoTitle mr-2">Enrolled Session:</div>
-                  <button
-                    className="btn ml-1 mt-1 mb-1 w-12 btn-accent"
-                    onClick={addSessionId}
-                  >
-                    +
-                  </button>
-                  <button
-                    className="btn ml-1 mt-1 mb-1 w-12 "
-                    onClick={removeSessionId}
-                  >
-                    -
-                  </button>
-                </div>
-                <div id="container" className="mb-2">
-                  {sessionIds.map((sessionId, index) => (
-                    <div key={index}>
-                      <input
-                        className="input input-bordered input-sm w-full max-w-xs mb-1"
-                        type="text"
-                        value={sessionId}
-                        placeholder={`Session Id ${index + 1}`}
-                        onChange={(e) =>
-                          handleSessionInputChange(index, e.target.value)
-                        }
-                      />
-                    </div>
-                  ))}
-                </div>
-                {updateSessionErrorMsg && (
-                  <div className="text-red-500">{updateSessionErrorMsg}</div>
-                )}
-                {updateSessionSuccessMsg && (
-                  <div className="text-green-500">
-                    {updateSessionSuccessMsg}
-                  </div>
-                )}
-              </div>
-              <button
-                className="btn w-16 mr-6 mt-4 btn-primary"
-                onClick={() => handleUpdateSessions()}
-              >
-                Create
-              </button>
-            </div>
-          )}
+                    )
+                  : //update
+                    _id && (
+                      <div key={_id}>
+                        <div className="flex mb-2 items-center justify-between">
+                          <div className="flex">
+                            <p className="w-36 infoTitle">Name:</p>
+                            <input
+                              name="participant_name"
+                              value={participant_name}
+                              onChange={handleParticipantEdit}
+                              className="input input-bordered input-sm w-full max-w-xs mb-1"
+                            />
+                          </div>
 
-          <div className="stat">
-            {programDataPackage.length > 0 &&
-              programDataPackage.map(({ programInfo, sessionInfo }) => {
-                const formattedDates = sessionInfo.session_dates
-                  .map(formatDateToLocal)
-                  .join(", ");
-                return (
-                  <div key={programInfo._id + "-" + sessionInfo._id}>
-                    <div className="flex items-center justify-between">
-                      <p className="infoTitle">Program Name:</p>
-                      {programDataPackage.length === 1 ? (
-                        <button
-                          disabled
-                          className="btn btn-sm w-16 btn-error "
-                          onClick={() =>
-                            handleRemoveEnrolledSession(sessionInfo._id)
-                          }
-                        >
-                          Remove
-                        </button>
-                      ) : (
-                        <button
-                          className="btn btn-sm w-16 btn-error"
-                          onClick={() =>
-                            handleRemoveEnrolledSession(sessionInfo._id)
-                          }
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                    <p className="mb-3 ml-10 mt-2">
-                      {programInfo.program_name_zh}
-                    </p>
-                    <p className="infoTitle mb-4">Session Date:</p>
-                    <p className="mb-3 ml-10 mt-2">{formattedDates}</p>
-                    {/* session id && button */}
-                    <div className="flex flex-col w-full">
-                      <p className="infoTitle mb-4">Session Id:</p>{" "}
-                      <div className="flex flex-row">
-                        <p className="mb-3 ml-10 mt-2">{sessionInfo._id}</p>
-                        <button
-                          className={"btn btn-sm btn-accent ml-2 mb-3"}
-                          onClick={() => copyToClipboard(sessionInfo._id)}
-                        >
-                          Copy Session Id
-                        </button>
+                          <>
+                            <div className="flex">
+                              <button
+                                className="btn btn-success"
+                                onClick={handleUpdateParticipantInfo}
+                              >
+                                Save
+                              </button>
+                              <button
+                                className="btn "
+                                onClick={toggleParticipantEditing}
+                                name="cancel"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </>
+                        </div>
+                        <div className="flex mb-4">
+                          <p className="w-24 infoTitle">Tel:</p>
+                          <input
+                            name="telephone_no"
+                            value={telephone_no}
+                            onChange={handleParticipantEdit}
+                            className="input input-bordered input-sm w-60 max-w-xs mb-1"
+                            maxLength={8}
+                          />
+                        </div>
+                        <div className="flex items-top mb-4">
+                          <p className="w-24 infoTitle">remarks:</p>
+                          <div>
+                            <textarea
+                              name="merchants_remarks" // 使用统一的 name
+                              value={merchants_remarks || ""} // 显示当前的备注内容
+                              onChange={handleParticipantEdit} // 更新备注内容
+                              className="textarea textarea-bordered w-96 !important"
+                            />
+                          </div>
+                        </div>
                       </div>
+                    )}
+              </div>
+              {/* -----------------------------------add session----------------------------------- */}
+              {participant._id && (
+                <div className="flex mt-2 mb-2 justify-between">
+                  <div className="ml-6">
+                    <div className="flex items-center mb-4 mt-3">
+                      <div className="w-24 infoTitle mr-2">
+                        Enrolled Session:
+                      </div>
+                      <button
+                        className="btn ml-1 mt-1 mb-1 w-12 btn-accent"
+                        onClick={addSessionId}
+                      >
+                        +
+                      </button>
+                      <button
+                        className="btn ml-1 mt-1 mb-1 w-12 "
+                        onClick={removeSessionId}
+                      >
+                        -
+                      </button>
                     </div>
-                    <div className="divider "></div>
+                    <div id="container" className="mb-2">
+                      {sessionIds.map((sessionId, index) => (
+                        <div key={index}>
+                          <input
+                            className="input input-bordered input-sm w-full max-w-xs mb-1"
+                            type="text"
+                            value={sessionId}
+                            placeholder={`Session Id ${index + 1}`}
+                            onChange={(e) =>
+                              handleSessionInputChange(index, e.target.value)
+                            }
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    {updateSessionErrorMsg && (
+                      <div className="text-red-500">
+                        {updateSessionErrorMsg}
+                      </div>
+                    )}
+                    {updateSessionSuccessMsg && (
+                      <div className="text-green-500">
+                        {updateSessionSuccessMsg}
+                      </div>
+                    )}
                   </div>
-                );
-              })}
+                  <button
+                    className="btn w-16 mr-6 mt-4 btn-primary"
+                    onClick={() => handleUpdateSessions()}
+                  >
+                    Create
+                  </button>
+                </div>
+              )}
+
+              <div className="stat">
+                {programDataPackage.length > 0 &&
+                  programDataPackage.map(({ programInfo, sessionInfo }) => {
+                    const formattedDates = sessionInfo.session_dates
+                      .map(formatDateToLocal)
+                      .join(", ");
+                    return (
+                      <div key={programInfo._id + "-" + sessionInfo._id}>
+                        <div className="flex items-center justify-between">
+                          <p className="infoTitle">Program Name:</p>
+                          {programDataPackage.length === 1 ? (
+                            <button
+                              disabled
+                              className="btn btn-sm w-16 btn-error "
+                              onClick={() =>
+                                handleRemoveEnrolledSession(sessionInfo._id)
+                              }
+                            >
+                              Remove
+                            </button>
+                          ) : (
+                            <button
+                              className="btn btn-sm w-16 btn-error"
+                              onClick={() =>
+                                handleRemoveEnrolledSession(sessionInfo._id)
+                              }
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                        <p className="mb-3 ml-10 mt-2">
+                          {programInfo.program_name_zh}
+                        </p>
+                        <p className="infoTitle mb-4">Session Date:</p>
+                        <p className="mb-3 ml-10 mt-2">{formattedDates}</p>
+                        {/* session id && button */}
+                        <div className="flex flex-col w-full">
+                          <p className="infoTitle mb-4">Session Id:</p>{" "}
+                          <div className="flex flex-row">
+                            <p className="mb-3 ml-10 mt-2">{sessionInfo._id}</p>
+                            <button
+                              className={"btn btn-sm btn-accent ml-2 mb-3"}
+                              onClick={() => copyToClipboard(sessionInfo._id)}
+                            >
+                              Copy Session Id
+                            </button>
+                          </div>
+                        </div>
+                        <div className="divider "></div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </Fragment>
+      )}
     </>
   );
 };

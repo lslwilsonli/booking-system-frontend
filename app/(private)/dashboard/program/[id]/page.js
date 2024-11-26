@@ -6,6 +6,7 @@ import Link from "next/link";
 import ImageUpload from "../../../../components/ImageUpload_v2";
 import { DBRef } from "bson";
 import Toast from "@/app/components/Toast";
+import Loading from "@/app/components/Loading";
 
 function formatDateToLocal(dateString) {
   const date = new Date(dateString);
@@ -29,6 +30,9 @@ function formatDateToLocal(dateString) {
 
 const ProgramInfo = () => {
   const params = useParams();
+
+  // Loading
+  const [isLoading, setIsLoading] = useState(true);
 
   // program
   const [programInfo, setProgramInfo] = useState({});
@@ -79,12 +83,14 @@ const ProgramInfo = () => {
   // api starts
 
   async function fetchProgramInfo() {
+    setIsLoading(true);
     let programInfoData;
     try {
       const result = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_API}/get-program-info/${params.id}`
       );
       programInfoData = await result.json();
+      setIsLoading(false);
     } catch (err) {
       console.log(`fetchProgramInfo ${err}`);
     }
@@ -95,8 +101,11 @@ const ProgramInfo = () => {
       const sessionsInfoData = await sessions_result.json();
       setProgramInfo(programInfoData);
       setSessionsInfo(sessionsInfoData);
+      setIsLoading(false);
     } catch (err) {
       console.log(`fetchSessionInfo ${err}`);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -148,7 +157,7 @@ const ProgramInfo = () => {
       console.log(err);
     }
   }
-  console.log("sessionsInfo", sessionsInfo);
+  // console.log("sessionsInfo", sessionsInfo);
   async function updateSessionInfo() {
     try {
       const updateResult = await fetch(
@@ -262,8 +271,8 @@ const ProgramInfo = () => {
 
   function handleCreateSessionEdit(e) {
     const { name, value } = e.target;
-    console.log("name", name);
-    console.log("value", value);
+    // console.log("name", name);
+    // console.log("value", value);
     setSessionCreateError("");
     setSessionCreateSuccess("");
     // session_type, teacher, session_notice
@@ -290,11 +299,11 @@ const ProgramInfo = () => {
       }
     }
   }
-  console.log("newSessionInfo", newSessionInfo);
+  // console.log("newSessionInfo", newSessionInfo);
   // Function to handle date changes for new session
   function handleNewDateChange(e, index) {
     const newDate = e.target.value; // Get the user-inputted date
-    console.log("newDate", newDate);
+    // console.log("newDate", newDate);
     setNewSessionInfo((prev) => {
       const updatedDates = [...prev.session_dates];
       updatedDates[index] = `${newDate}T${updatedDates[index].split("T")[1]}`; // Combine new date with existing time
@@ -811,164 +820,175 @@ const ProgramInfo = () => {
 
   return (
     <>
-      {/* Program */}
-      {/* --------------------------------------Page title----------------------------------- */}
-      <h1 className="text-3xl mt-4 mb-2">Program Detail Page</h1>
-      <div className="breadcrumbs text-sm">
-        <ul>
-          <li>
-            <Link href="../../dashboard">Home</Link>
-          </li>
-          <li>
-            <Link href="../program">Program</Link>
-          </li>
-          <li>
-            <a>Program Detail</a>
-          </li>
-        </ul>
-      </div>
-      {/* --------------------------------分隔個條線--------------------------- */}
-      <div className="flex w-full flex-col">
-        <div className="divider divider-secondary mt-1 mb-1"></div>
-      </div>
-      {/* --------------------------------program detail--------------------------- */}
-      <div className="flex justify-center">
-        <div className="mt-6 stats stats-vertical shadow w-10/12">
-          {programInfo && (
-            <>
-              <div className="relative">
-                {/* -------------------------------EDIT---------------------------------- */}
-                {!isEditing ? (
-                  <button
-                    className="btn btn-primary absolute top-5 right-5"
-                    onClick={toggleProgramEditing}
-                  >
-                    Edit Program Detail
-                  </button>
-                ) : (
+      {isLoading && <Loading />}
+      {!isLoading && (
+        <Fragment>
+          {/* Program */}
+          {/* --------------------------------------Page title----------------------------------- */}
+          <h1 className="text-3xl mt-4 mb-2">Program Detail Page</h1>
+          <div className="breadcrumbs text-sm">
+            <ul>
+              <li>
+                <Link href="../../dashboard">Home</Link>
+              </li>
+              <li>
+                <Link href="../program">Program</Link>
+              </li>
+              <li>
+                <a>Program Detail</a>
+              </li>
+            </ul>
+          </div>
+          {/* --------------------------------分隔個條線--------------------------- */}
+          <div className="flex w-full flex-col">
+            <div className="divider divider-secondary mt-1 mb-1"></div>
+          </div>
+          {/* --------------------------------program detail--------------------------- */}
+          <div className="flex justify-center">
+            <div className="mt-6 stats stats-vertical shadow w-10/12">
+              {programInfo && (
+                <>
                   <div className="relative">
-                    <div className="absolute top-5 right-5">
+                    {/* -------------------------------EDIT---------------------------------- */}
+                    {!isEditing ? (
                       <button
-                        className="btn btn-sm btn-success"
-                        onClick={handleUpdateProgramInfo}
-                      >
-                        Save
-                      </button>
-                      <button
-                        className="btn btn-sm"
+                        className="btn btn-primary absolute top-5 right-5"
                         onClick={toggleProgramEditing}
-                        name="cancel"
                       >
-                        Cancel
+                        Edit Program Detail
                       </button>
-                    </div>
-                  </div>
-                )}
-                {/* ------------------------------program detail list------------------------------ */}
-                {_id && (
-                  <div>
-                    <div className="m-6">
-                      {!isEditing ? (
-                        // Read
-                        <>
-                          <div className="flex">
-                            <p className="w-28 infoTitle mb-3">Program Name:</p>
-                            <p>{program_name_zh}</p>
-                          </div>
-                          <div className="flex">
-                            <p className="w-28 infoTitle mb-3">Program Type:</p>
-                            <p>{program_type}</p>
-                          </div>
-                          {/* {program_subtype && (
+                    ) : (
+                      <div className="relative">
+                        <div className="absolute top-5 right-5">
+                          <button
+                            className="btn btn-sm btn-success"
+                            onClick={handleUpdateProgramInfo}
+                          >
+                            Save
+                          </button>
+                          <button
+                            className="btn btn-sm"
+                            onClick={toggleProgramEditing}
+                            name="cancel"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {/* ------------------------------program detail list------------------------------ */}
+                    {_id && (
+                      <div>
+                        <div className="m-6">
+                          {!isEditing ? (
+                            // Read
+                            <>
+                              <div className="flex">
+                                <p className="w-28 infoTitle mb-3">
+                                  Program Name:
+                                </p>
+                                <p>{program_name_zh}</p>
+                              </div>
+                              <div className="flex">
+                                <p className="w-28 infoTitle mb-3">
+                                  Program Type:
+                                </p>
+                                <p>{program_type}</p>
+                              </div>
+                              {/* {program_subtype && (
                             <p>
                               <p>{program_subtype.tag1}</p>
                               <p>{program_subtype.tag2}</p>
                               <p>{program_subtype.tag3}</p>
                             </p>
                           )} */}
-                          <div className="flex">
-                            <p className="w-28 infoTitle mb-3">Description:</p>
-                            <p className="w-128 mb-3">{description}</p>
-                          </div>
-                          <div className="flex">
-                            <p className="w-28 infoTitle mb-3">
-                              Program Notice:
-                            </p>
-                            <p>{program_notice}</p>
-                          </div>
-                          <div className="flex">
-                            <p className="w-44 infoTitle mb-3">
-                              Program Price Per Lesson:
-                            </p>
-                            <p>${program_price_per_lesson}</p>
-                          </div>
-                          <div className="flex">
-                            <p className="w-44 infoTitle mb-3">
-                              {`Lesson Duration (mins):`}
-                            </p>
-                            <p>{lesson_duration} mins</p>
-                          </div>
-                          {/* -----------------image button-------------------- */}
-                          <div>
-                            <button
-                              className={"btn btn-accent mt-2 mr-2 mb-2 btn-sm"}
-                              onClick={handleShowImage}
-                            >
-                              {`Program Images`}
-                            </button>
-                            <button
-                              className={"btn btn-accent btn-sm"}
-                              onClick={handleUploadImage}
-                            >
-                              {`Upload Program Images`}
-                            </button>
-                            <div className="flex flex-wrap">
-                              {program_image.length > 0 &&
-                                showImage &&
-                                program_image.map((image, idx) => {
-                                  return (
-                                    <img
-                                      className="h-48"
-                                      key={idx}
-                                      src={
-                                        image ||
-                                        "https://via.placeholder.com/150?text=Placeholder"
-                                      }
-                                    />
-                                  );
-                                })}
-                            </div>
-                            {uploadImage && (
-                              <ImageUpload
-                                prog_id={_id}
-                                programInfo={programInfo}
-                                setProgramInfo={setProgramInfo}
-                              />
-                            )}
-                          </div>
-                        </>
-                      ) : (
-                        // Update
-                        <>
-                          <div className="flex">
-                            <p className="w-28 infoTitle">Program Name:</p>
-                            <input
-                              className="input input-bordered input-sm w-full max-w-xs mb-1"
-                              name="program_name_zh"
-                              value={program_name_zh}
-                              onChange={handleProgramEdit}
-                            />
-                          </div>
-                          <div className="flex">
-                            <p className="w-28 infoTitle">Program Type:</p>
-                            <input
-                              className="input input-bordered input-sm w-full max-w-xs mb-1"
-                              name="program_type"
-                              value={program_type}
-                              onChange={handleProgramEdit}
-                            />
-                          </div>
-                          {/* {program_subtype && (
+                              <div className="flex">
+                                <p className="w-28 infoTitle mb-3">
+                                  Description:
+                                </p>
+                                <p className="w-128 mb-3">{description}</p>
+                              </div>
+                              <div className="flex">
+                                <p className="w-28 infoTitle mb-3">
+                                  Program Notice:
+                                </p>
+                                <p>{program_notice}</p>
+                              </div>
+                              <div className="flex">
+                                <p className="w-44 infoTitle mb-3">
+                                  Program Price Per Lesson:
+                                </p>
+                                <p>${program_price_per_lesson}</p>
+                              </div>
+                              <div className="flex">
+                                <p className="w-44 infoTitle mb-3">
+                                  {`Lesson Duration (mins):`}
+                                </p>
+                                <p>{lesson_duration} mins</p>
+                              </div>
+                              {/* -----------------image button-------------------- */}
+                              <div>
+                                <button
+                                  className={
+                                    "btn btn-accent mt-2 mr-2 mb-2 btn-sm"
+                                  }
+                                  onClick={handleShowImage}
+                                >
+                                  {`Program Images`}
+                                </button>
+                                <button
+                                  className={"btn btn-accent btn-sm"}
+                                  onClick={handleUploadImage}
+                                >
+                                  {`Upload Program Images`}
+                                </button>
+                                <div className="flex flex-wrap">
+                                  {program_image.length > 0 &&
+                                    showImage &&
+                                    program_image.map((image, idx) => {
+                                      return (
+                                        <img
+                                          className="h-48"
+                                          key={idx}
+                                          src={
+                                            image ||
+                                            "https://via.placeholder.com/150?text=Placeholder"
+                                          }
+                                        />
+                                      );
+                                    })}
+                                </div>
+                                {uploadImage && (
+                                  <ImageUpload
+                                    prog_id={_id}
+                                    programInfo={programInfo}
+                                    setProgramInfo={setProgramInfo}
+                                  />
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            // Update
+                            <>
+                              <div className="flex">
+                                <p className="w-28 infoTitle">Program Name:</p>
+                                <input
+                                  className="input input-bordered input-sm w-full max-w-xs mb-1"
+                                  name="program_name_zh"
+                                  value={program_name_zh}
+                                  onChange={handleProgramEdit}
+                                />
+                              </div>
+                              <div className="flex">
+                                <p className="w-28 infoTitle">Program Type:</p>
+                                <input
+                                  className="input input-bordered input-sm w-full max-w-xs mb-1"
+                                  name="program_type"
+                                  value={program_type}
+                                  onChange={handleProgramEdit}
+                                />
+                              </div>
+                              {/* {program_subtype && (
                             <div>
                               <div>
                                 <input
@@ -993,113 +1013,117 @@ const ProgramInfo = () => {
                               </div>
                             </div>
                           )} */}
-                          <div className="flex">
-                            <p className="w-28 infoTitle">Description:</p>
-                            <div>
-                              <textarea
-                                name="description" // 使用统一的 name
-                                value={description} // 显示当前的备注内容
-                                onChange={handleProgramEdit} // 更新备注内容
-                                className="textarea textarea-bordered w-128 !important"
-                              />
-                            </div>
-                          </div>
-                          <div className="flex">
-                            <p className="w-28 infoTitle">Program Notice:</p>
-                            <input
-                              className="input input-bordered input-sm w-full max-w-xs mb-1"
-                              name="program_notice"
-                              value={program_notice}
-                              onChange={handleProgramEdit}
-                            />
-                          </div>
-                          <div className="flex">
-                            <p className="w-40 infoTitle">
-                              Program Price Per Lesson:
-                            </p>
-                            <input
-                              className="input input-bordered input-sm w-2/12 max-w-xs mb-1"
-                              name="program_price_per_lesson"
-                              type="text"
-                              value={program_price_per_lesson}
-                              onChange={handleProgramEdit}
-                            />
-                          </div>
-                          <div className="flex">
-                            <p className="w-40 infoTitle">
-                              {`Lesson Duration: (mins)`}
-                            </p>
-                            <input
-                              className="input input-bordered input-sm w-2/12 max-w-xs mb-1"
-                              name="lesson_duration"
-                              value={lesson_duration}
-                              onChange={handleProgramEdit}
-                              type="text"
-                            />
-                          </div>
-                          <div>
-                            <button
-                              className={"btn btn-accent btn-sm mb-2 mr-2"}
-                              onClick={handleShowImage}
-                            >
-                              {`Program Images`}
-                            </button>
-                            <button
-                              className={"btn btn-accent btn-sm mb-2"}
-                              onClick={handleUploadImage}
-                            >
-                              {`Upload Program Images`}
-                            </button>
-                            <div className="flex flex-wrap">
-                              {program_image.length > 0 &&
-                                showImage &&
-                                program_image.map((image, idx) => {
-                                  return (
-                                    <Fragment key={idx}>
-                                      <div className="flex flex-col mr-2">
-                                        {
-                                          <img
-                                            className="h-48"
-                                            key={idx}
-                                            src={
-                                              image ||
-                                              "https://via.placeholder.com/150?text=Placeholder"
-                                            }
-                                          />
-                                        }
-                                        <input
-                                          name={`program_image+${idx}`}
-                                          value={
-                                            image ||
-                                            "https://via.placeholder.com/150?text=Placeholder"
-                                          }
-                                          onChange={handleProgramEdit}
-                                        />
-                                        <button
-                                          className={"btn btn-xs w-28 mb-2"}
-                                          onClick={handleRemoveImage}
-                                          name={`${idx}`}
-                                        >
-                                          Remove Image
-                                        </button>
-                                      </div>
-                                    </Fragment>
-                                  );
-                                })}
-                            </div>
-                            {showImage && (
+                              <div className="flex">
+                                <p className="w-28 infoTitle">Description:</p>
+                                <div>
+                                  <textarea
+                                    name="description" // 使用统一的 name
+                                    value={description} // 显示当前的备注内容
+                                    onChange={handleProgramEdit} // 更新备注内容
+                                    className="textarea textarea-bordered w-128 !important"
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex">
+                                <p className="w-28 infoTitle">
+                                  Program Notice:
+                                </p>
+                                <input
+                                  className="input input-bordered input-sm w-full max-w-xs mb-1"
+                                  name="program_notice"
+                                  value={program_notice}
+                                  onChange={handleProgramEdit}
+                                />
+                              </div>
+                              <div className="flex">
+                                <p className="w-40 infoTitle">
+                                  Program Price Per Lesson:
+                                </p>
+                                <input
+                                  className="input input-bordered input-sm w-2/12 max-w-xs mb-1"
+                                  name="program_price_per_lesson"
+                                  type="text"
+                                  value={program_price_per_lesson}
+                                  onChange={handleProgramEdit}
+                                />
+                              </div>
+                              <div className="flex">
+                                <p className="w-40 infoTitle">
+                                  {`Lesson Duration: (mins)`}
+                                </p>
+                                <input
+                                  className="input input-bordered input-sm w-2/12 max-w-xs mb-1"
+                                  name="lesson_duration"
+                                  value={lesson_duration}
+                                  onChange={handleProgramEdit}
+                                  type="text"
+                                />
+                              </div>
                               <div>
                                 <button
-                                  className={"btn btn-secondary btn-sm mt-4"}
-                                  onClick={handleAddImage}
+                                  className={"btn btn-accent btn-sm mb-2 mr-2"}
+                                  onClick={handleShowImage}
                                 >
-                                  Add Image
+                                  {`Program Images`}
                                 </button>
+                                <button
+                                  className={"btn btn-accent btn-sm mb-2"}
+                                  onClick={handleUploadImage}
+                                >
+                                  {`Upload Program Images`}
+                                </button>
+                                <div className="flex flex-wrap">
+                                  {program_image.length > 0 &&
+                                    showImage &&
+                                    program_image.map((image, idx) => {
+                                      return (
+                                        <Fragment key={idx}>
+                                          <div className="flex flex-col mr-2">
+                                            {
+                                              <img
+                                                className="h-48"
+                                                key={idx}
+                                                src={
+                                                  image ||
+                                                  "https://via.placeholder.com/150?text=Placeholder"
+                                                }
+                                              />
+                                            }
+                                            <input
+                                              name={`program_image+${idx}`}
+                                              value={
+                                                image ||
+                                                "https://via.placeholder.com/150?text=Placeholder"
+                                              }
+                                              onChange={handleProgramEdit}
+                                            />
+                                            <button
+                                              className={"btn btn-xs w-28 mb-2"}
+                                              onClick={handleRemoveImage}
+                                              name={`${idx}`}
+                                            >
+                                              Remove Image
+                                            </button>
+                                          </div>
+                                        </Fragment>
+                                      );
+                                    })}
+                                </div>
+                                {showImage && (
+                                  <div>
+                                    <button
+                                      className={
+                                        "btn btn-secondary btn-sm mt-4"
+                                      }
+                                      onClick={handleAddImage}
+                                    >
+                                      Add Image
+                                    </button>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
 
-                          {/* {program_image.length > 0 &&
+                              {/* {program_image.length > 0 &&
                             showImage &&
                             program_image.map((image, idx) => {
                               return (
@@ -1112,315 +1136,329 @@ const ProgramInfo = () => {
                                 />
                               );
                             })} */}
-                          {uploadImage && (
-                            <ImageUpload
-                              prog_id={_id}
-                              programInfo={programInfo}
-                              setProgramInfo={setProgramInfo}
-                            />
+                              {uploadImage && (
+                                <ImageUpload
+                                  prog_id={_id}
+                                  programInfo={programInfo}
+                                  setProgramInfo={setProgramInfo}
+                                />
+                              )}
+                            </>
                           )}
-                        </>
-                      )}
-                    </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </>
-          )}
-          {/* ------------------Session----------------- */}
-          {/* -----------------Session Create Button-------------------- */}
-          <div>
-            <div className="relative">
-              <button
-                className="btn btn-primary absolute top-5 right-5"
-                onClick={handleCreateSessionInfo}
-              >
-                Create
-              </button>
-            </div>
-            <div className="ml-5 mt-5">
-              <div className="flex">
-                <p className="w-28 infoTitle">Session Type:</p>
-                <select
-                  value={session_type}
-                  onChange={(e) => handleCreateSessionEdit(e)}
-                  name="session_type"
-                  className="select select-bordered w-full max-w-xs select-sm mb-1"
-                >
-                  <option disabled defaultValue value="">
-                    Select a type
-                  </option>
-                  <option value="participant">participant</option>
-                  <option value="timeslot">timeslot</option>
-                </select>
-              </div>
-              <div className="flex">
-                <p className="w-28 infoTitle">Teacher:</p>
-                <input
-                  name="teacher"
-                  value={teacher}
-                  onChange={(e) => handleCreateSessionEdit(e)}
-                  className="input input-bordered input-sm w-full max-w-xs mb-1"
-                />
-              </div>
-
+                </>
+              )}
+              {/* ------------------Session----------------- */}
+              {/* -----------------Session Create Button-------------------- */}
               <div>
-                <div className="flex">
-                  <p className="w-24 infoTitle">Dates & Time:</p>
+                <div className="relative">
                   <button
-                    className="btn btn-accent btn-sm mb-1"
-                    onClick={(e) => handleAddNewSessionDate(e)}
+                    className="btn btn-primary absolute top-5 right-5"
+                    onClick={handleCreateSessionInfo}
                   >
-                    +
+                    Create
                   </button>
                 </div>
-                {session_dates.map((date, index) => {
-                  const [datePart, timePart] = date.split("T");
+                <div className="ml-5 mt-5">
+                  <div className="flex">
+                    <p className="w-28 infoTitle">Session Type:</p>
+                    <select
+                      value={session_type}
+                      onChange={(e) => handleCreateSessionEdit(e)}
+                      name="session_type"
+                      className="select select-bordered w-full max-w-xs select-sm mb-1"
+                    >
+                      <option disabled defaultValue value="">
+                        Select a type
+                      </option>
+                      <option value="participant">participant</option>
+                      <option value="timeslot">timeslot</option>
+                    </select>
+                  </div>
+                  <div className="flex">
+                    <p className="w-28 infoTitle">Teacher:</p>
+                    <input
+                      name="teacher"
+                      value={teacher}
+                      onChange={(e) => handleCreateSessionEdit(e)}
+                      className="input input-bordered input-sm w-full max-w-xs mb-1"
+                    />
+                  </div>
 
-                  return (
-                    <div key={index}>
-                      <input
-                        type="date"
-                        value={datePart}
-                        onChange={(e) => handleNewDateChange(e, index)}
-                        className="input input-bordered input-sm w-52 max-w-xs mb-1 mr-1"
-                      />
-                      <input
-                        type="time"
-                        value={timePart.split(".")[0]} // ignore ms
-                        onChange={(e) => handleNewTimeChange(e, index)}
-                        className="input input-bordered input-sm w-52 max-w-xs mb-1"
-                      />
+                  <div>
+                    <div className="flex">
+                      <p className="w-24 infoTitle">Dates & Time:</p>
                       <button
-                        className="btn btn-sm ml-2"
-                        onClick={() => handleRemoveNewSessionDate(index)}
+                        className="btn btn-accent btn-sm mb-1"
+                        onClick={(e) => handleAddNewSessionDate(e)}
                       >
-                        Remove
+                        +
                       </button>
                     </div>
-                  );
-                })}
-              </div>
-              {session_type === "timeslot" && (
-                <>
-                  <div className="flex">
-                    <p className="w-32 infoTitle">Timeslot Vacancy:</p>
-                    <input
-                      name="vacancy_timeslot"
-                      value={vacancy_timeslot}
-                      onChange={(e) => handleCreateSessionEdit(e)}
-                      className="input input-bordered input-sm w-full max-w-xs mb-1"
-                    />
-                  </div>
-                  <div className="flex">
-                    <p className="w-32 infoTitle">Participant Vacancy:</p>
-                    <input
-                      name="vacancy_participant"
-                      value={vacancy_participant}
-                      onChange={(e) => handleCreateSessionEdit(e)}
-                      className="input input-bordered input-sm w-full max-w-xs mb-1"
-                    />
-                  </div>
-                </>
-              )}
-              {session_type === "participant" && (
-                <>
-                  <div className="flex">
-                    <p className="w-32 infoTitle">Participant Vacancy:</p>
-                    <input
-                      name="vacancy_participant"
-                      value={vacancy_participant}
-                      onChange={(e) => handleCreateSessionEdit(e)}
-                      className="input input-bordered input-sm w-full max-w-xs mb-1"
-                    />
-                  </div>
-                </>
-              )}
-              <div className="flex">
-                <p className="w-28 infoTitle">Session Notice:</p>
-                <input
-                  name="session_notice"
-                  value={session_notice}
-                  onChange={(e) => handleCreateSessionEdit(e)}
-                  className="input input-bordered input-sm w-full max-w-xs mb-4"
-                />
-              </div>
-              {/* ---------------------------warn msg------------------------ */}
-              {(sessionCreateSuccess && (
-                <p className="text-green-500">{`${sessionCreateSuccess}`}</p>
-              )) ||
-                (sessionCreateError && (
-                  <p className="text-red-500">{`${sessionCreateError}`}</p>
-                ))}
-            </div>
-          </div>
+                    {session_dates.map((date, index) => {
+                      const [datePart, timePart] = date.split("T");
 
-          {/* Session Edit Button */}
-          <div>
-            {!sessionUpdating ? (
-              <div className="relative">
-                <button
-                  className="btn btn-primary absolute top-5 right-5"
-                  onClick={toggleUpdateSessionEditing}
-                >
-                  Edit All Sessions
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="relative">
-                  <div className="absolute top-5 right-5">
-                    <button
-                      className="btn btn-sm btn-success"
-                      onClick={handleUpdateSessionInfo}
-                    >
-                      Save All Sessions
-                    </button>
-                    <button
-                      className="btn btn-sm"
-                      name="cancel"
-                      onClick={toggleUpdateSessionEditing}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-            {/* Session */}
-            {sessionsInfo[0]?._id &&
-              sessionsInfo.map(
-                (
-                  {
-                    _id,
-                    session_dates,
-                    session_notice,
-                    session_type,
-                    vacancy_participant,
-                    vacancy_timeslot,
-                    numberOfParticipant,
-                    availableSeats,
-                    teacher,
-                    isEditing,
-                  },
-                  idx
-                ) => {
-                  const formattedDates = session_dates
-                    .map(formatDateToLocal)
-                    .join(", ");
-                  console.log("session_dates", session_dates);
-                  console.log("formattedDates", formattedDates);
-                  {
-                    if (!isEditing) {
                       return (
-                        <div key={_id} className="mt-5 ml-5">
-                          <div className="flex">
-                            <p className="w-52 infoTitle">Session Type:</p>
-                            <p>{session_type}</p>
-                          </div>
-                          <div className="flex">
-                            <p className="w-52 infoTitle">Teacher:</p>
-                            <p>{teacher}</p>
-                          </div>
-                          <div className="flex">
-                            <p className="w-52 infoTitle">Dates:</p>
-                            <p>{formattedDates}</p>
-                          </div>
-                          {session_type === "timeslot" && (
-                            <div className="flex">
-                              <p className="w-52 infoTitle">
-                                Timeslot Vacancy:
-                              </p>
-                              <p>{vacancy_timeslot}</p>
-                            </div>
-                          )}
-                          <div className="flex">
-                            <p className="w-52 infoTitle">
-                              Participant Vacancy:
-                            </p>
-                            <p> {vacancy_participant}</p>
-                          </div>
-                          <div className="flex">
-                            <p className="w-52 infoTitle">
-                              Number of Enrolled Participant(s):
-                            </p>
-                            <p>{numberOfParticipant}</p>
-                          </div>
-                          <div className="flex">
-                            <p className="w-52 infoTitle">Available Seats:</p>
-                            {availableSeats !== 0 ? (
-                              availableSeats
-                            ) : (
-                              <p className="text-red-500">{availableSeats}</p>
-                            )}
-                          </div>
-                          <div className="flex">
-                            <p className="w-52 infoTitle">Session Notice:</p>
-                            <p> {session_notice}</p>
-                          </div>
-                          <div className="flex">
-                            <div className="flex items-center">
-                              <p className="w-52 infoTitle">Session Id:</p>{" "}
-                              <p className="opacity-60">{_id}</p>
-                            </div>
-                            <button
-                              className={"btn btn-accent btn-sm ml-2 mb-3"}
-                              onClick={() => copyToClipboard(_id)}
-                            >
-                              Copy Session Id
-                            </button>
-                          </div>
-                          <div>
-                            {/* {sessionUpdateSuccess && (
-                              <p className="text-green-500">{`${sessionUpdateSuccess}`}</p>
-                            )} */}
-                            {sessionUpdateError && (
-                              <p className="text-red-500">{`${sessionUpdateError}`}</p>
-                            )}
-                          </div>
-                          <hr />
+                        <div key={index}>
+                          <input
+                            type="date"
+                            value={datePart}
+                            onChange={(e) => handleNewDateChange(e, index)}
+                            className="input input-bordered input-sm w-52 max-w-xs mb-1 mr-1"
+                          />
+                          <input
+                            type="time"
+                            value={timePart.split(".")[0]} // ignore ms
+                            onChange={(e) => handleNewTimeChange(e, index)}
+                            className="input input-bordered input-sm w-52 max-w-xs mb-1"
+                          />
+                          <button
+                            className="btn btn-sm ml-2"
+                            onClick={() => handleRemoveNewSessionDate(index)}
+                          >
+                            Remove
+                          </button>
                         </div>
                       );
-                    }
-                    if (isEditing) {
-                      return (
-                        <div key={_id} className="ml-5 mt-5">
-                          <div className="flex">
-                            <p className="w-28 infoTitle">Session Type:</p>
-                            <select
-                              value={session_type}
-                              onChange={(e) => handleUpdateSessionEdit(e, _id)}
-                              name="session_type"
-                              className="select select-bordered w-full max-w-xs select-sm mb-1"
-                            >
-                              <option value="participant">participant</option>
-                              <option value="timeslot">timeslot</option>
-                            </select>
-                          </div>
-                          <div className="flex">
-                            <p className="w-28 infoTitle">Teacher:</p>
-                            <input
-                              name="teacher"
-                              value={teacher}
-                              onChange={(e) => handleUpdateSessionEdit(e, _id)}
-                              className="input input-bordered input-sm w-full max-w-xs mb-1"
-                            />
-                          </div>
-                          <div>
-                            <div className="flex">
-                              <p className="w-28 infoTitle">Dates & Time:</p>
-                              <button
-                                className="btn btn-accent btn-sm mb-1"
-                                onClick={() => handleAddSessionDate(_id)}
-                              >
-                                +
-                              </button>
+                    })}
+                  </div>
+                  {session_type === "timeslot" && (
+                    <>
+                      <div className="flex">
+                        <p className="w-32 infoTitle">Timeslot Vacancy:</p>
+                        <input
+                          name="vacancy_timeslot"
+                          value={vacancy_timeslot}
+                          onChange={(e) => handleCreateSessionEdit(e)}
+                          className="input input-bordered input-sm w-full max-w-xs mb-1"
+                        />
+                      </div>
+                      <div className="flex">
+                        <p className="w-32 infoTitle">Participant Vacancy:</p>
+                        <input
+                          name="vacancy_participant"
+                          value={vacancy_participant}
+                          onChange={(e) => handleCreateSessionEdit(e)}
+                          className="input input-bordered input-sm w-full max-w-xs mb-1"
+                        />
+                      </div>
+                    </>
+                  )}
+                  {session_type === "participant" && (
+                    <>
+                      <div className="flex">
+                        <p className="w-32 infoTitle">Participant Vacancy:</p>
+                        <input
+                          name="vacancy_participant"
+                          value={vacancy_participant}
+                          onChange={(e) => handleCreateSessionEdit(e)}
+                          className="input input-bordered input-sm w-full max-w-xs mb-1"
+                        />
+                      </div>
+                    </>
+                  )}
+                  <div className="flex">
+                    <p className="w-28 infoTitle">Session Notice:</p>
+                    <input
+                      name="session_notice"
+                      value={session_notice}
+                      onChange={(e) => handleCreateSessionEdit(e)}
+                      className="input input-bordered input-sm w-full max-w-xs mb-4"
+                    />
+                  </div>
+                  {/* ---------------------------warn msg------------------------ */}
+                  {(sessionCreateSuccess && (
+                    <p className="text-green-500">{`${sessionCreateSuccess}`}</p>
+                  )) ||
+                    (sessionCreateError && (
+                      <p className="text-red-500">{`${sessionCreateError}`}</p>
+                    ))}
+                </div>
+              </div>
+
+              {/* Session Edit Button */}
+              <div>
+                {!sessionUpdating ? (
+                  <div className="relative">
+                    <button
+                      className="btn btn-primary absolute top-5 right-5"
+                      onClick={toggleUpdateSessionEditing}
+                    >
+                      Edit All Sessions
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="relative">
+                      <div className="absolute top-5 right-5">
+                        <button
+                          className="btn btn-sm btn-success"
+                          onClick={handleUpdateSessionInfo}
+                        >
+                          Save All Sessions
+                        </button>
+                        <button
+                          className="btn btn-sm"
+                          name="cancel"
+                          onClick={toggleUpdateSessionEditing}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+                {/* Session */}
+                {sessionsInfo[0]?._id &&
+                  sessionsInfo.map(
+                    (
+                      {
+                        _id,
+                        session_dates,
+                        session_notice,
+                        session_type,
+                        vacancy_participant,
+                        vacancy_timeslot,
+                        numberOfParticipant,
+                        availableSeats,
+                        teacher,
+                        isEditing,
+                      },
+                      idx
+                    ) => {
+                      const formattedDates = session_dates
+                        .map(formatDateToLocal)
+                        .join(", ");
+                      // console.log("session_dates", session_dates);
+                      // console.log("formattedDates", formattedDates);
+                      {
+                        if (!isEditing) {
+                          return (
+                            <div key={_id} className="mt-5 ml-5">
+                              <div className="flex">
+                                <p className="w-52 infoTitle">Session Type:</p>
+                                <p>{session_type}</p>
+                              </div>
+                              <div className="flex">
+                                <p className="w-52 infoTitle">Teacher:</p>
+                                <p>{teacher}</p>
+                              </div>
+                              <div className="flex">
+                                <p className="w-52 infoTitle">Dates:</p>
+                                <p>{formattedDates}</p>
+                              </div>
+                              {session_type === "timeslot" && (
+                                <div className="flex">
+                                  <p className="w-52 infoTitle">
+                                    Timeslot Vacancy:
+                                  </p>
+                                  <p>{vacancy_timeslot}</p>
+                                </div>
+                              )}
+                              <div className="flex">
+                                <p className="w-52 infoTitle">
+                                  Participant Vacancy:
+                                </p>
+                                <p> {vacancy_participant}</p>
+                              </div>
+                              <div className="flex">
+                                <p className="w-52 infoTitle">
+                                  Number of Enrolled Participant(s):
+                                </p>
+                                <p>{numberOfParticipant}</p>
+                              </div>
+                              <div className="flex">
+                                <p className="w-52 infoTitle">
+                                  Available Seats:
+                                </p>
+                                {availableSeats !== 0 ? (
+                                  availableSeats
+                                ) : (
+                                  <p className="text-red-500">
+                                    {availableSeats}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex">
+                                <p className="w-52 infoTitle">
+                                  Session Notice:
+                                </p>
+                                <p> {session_notice}</p>
+                              </div>
+                              <div className="flex">
+                                <div className="flex items-center">
+                                  <p className="w-52 infoTitle">Session Id:</p>{" "}
+                                  <p className="opacity-60">{_id}</p>
+                                </div>
+                                <button
+                                  className={"btn btn-accent btn-sm ml-2 mb-3"}
+                                  onClick={() => copyToClipboard(_id)}
+                                >
+                                  Copy Session Id
+                                </button>
+                              </div>
+                              <div>
+                                {/* {sessionUpdateSuccess && (
+                              <p className="text-green-500">{`${sessionUpdateSuccess}`}</p>
+                            )} */}
+                                {sessionUpdateError && (
+                                  <p className="text-red-500">{`${sessionUpdateError}`}</p>
+                                )}
+                              </div>
+                              <hr />
                             </div>
-                            {session_dates.map((date, index) => {
-                              const [datePart, timePart] = date.split("T");
-                              return (
-                                <div key={index}>
-                                  {/* <input
+                          );
+                        }
+                        if (isEditing) {
+                          return (
+                            <div key={_id} className="ml-5 mt-5">
+                              <div className="flex">
+                                <p className="w-28 infoTitle">Session Type:</p>
+                                <select
+                                  value={session_type}
+                                  onChange={(e) =>
+                                    handleUpdateSessionEdit(e, _id)
+                                  }
+                                  name="session_type"
+                                  className="select select-bordered w-full max-w-xs select-sm mb-1"
+                                >
+                                  <option value="participant">
+                                    participant
+                                  </option>
+                                  <option value="timeslot">timeslot</option>
+                                </select>
+                              </div>
+                              <div className="flex">
+                                <p className="w-28 infoTitle">Teacher:</p>
+                                <input
+                                  name="teacher"
+                                  value={teacher}
+                                  onChange={(e) =>
+                                    handleUpdateSessionEdit(e, _id)
+                                  }
+                                  className="input input-bordered input-sm w-full max-w-xs mb-1"
+                                />
+                              </div>
+                              <div>
+                                <div className="flex">
+                                  <p className="w-28 infoTitle">
+                                    Dates & Time:
+                                  </p>
+                                  <button
+                                    className="btn btn-accent btn-sm mb-1"
+                                    onClick={() => handleAddSessionDate(_id)}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                                {session_dates.map((date, index) => {
+                                  const [datePart, timePart] = date.split("T");
+                                  return (
+                                    <div key={index}>
+                                      {/* <input
                                     type="date"
                                     value={datePart}
                                     onChange={(e) =>
@@ -1436,135 +1474,149 @@ const ProgramInfo = () => {
                                     }
                                     className="input input-bordered input-sm w-52 max-w-xs mb-1"
                                   /> */}
-                                  <input
-                                    type="date"
-                                    value={new Date(
-                                      session_dates[index]
-                                    ).toLocaleDateString("en-CA", {
-                                      timeZone: "Asia/Hong_Kong",
-                                    })} // 转为香港时区的日期
-                                    onChange={(e) =>
-                                      handleDateChange(e, _id, index)
-                                    }
-                                    className="input input-bordered input-sm w-52 max-w-xs mb-1 mr-1"
-                                  />
-                                  <input
-                                    type="time"
-                                    value={new Date(
-                                      session_dates[index]
-                                    ).toLocaleTimeString("en-US", {
-                                      timeZone: "Asia/Hong_Kong",
-                                      hour12: false, // 确保为 24 小时制或适配 DaisyUI
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })} // 转为香港时区的时间
-                                    onChange={(e) =>
-                                      handleTimeChange(e, _id, index)
-                                    }
-                                    className="input input-bordered input-sm w-52 max-w-xs mb-1"
-                                  />
+                                      <input
+                                        type="date"
+                                        value={new Date(
+                                          session_dates[index]
+                                        ).toLocaleDateString("en-CA", {
+                                          timeZone: "Asia/Hong_Kong",
+                                        })} // 转为香港时区的日期
+                                        onChange={(e) =>
+                                          handleDateChange(e, _id, index)
+                                        }
+                                        className="input input-bordered input-sm w-52 max-w-xs mb-1 mr-1"
+                                      />
+                                      <input
+                                        type="time"
+                                        value={new Date(
+                                          session_dates[index]
+                                        ).toLocaleTimeString("en-US", {
+                                          timeZone: "Asia/Hong_Kong",
+                                          hour12: false, // 确保为 24 小时制或适配 DaisyUI
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        })} // 转为香港时区的时间
+                                        onChange={(e) =>
+                                          handleTimeChange(e, _id, index)
+                                        }
+                                        className="input input-bordered input-sm w-52 max-w-xs mb-1"
+                                      />
 
-                                  <button
-                                    className="btn btn-sm ml-2"
-                                    onClick={() =>
-                                      handleRemoveSessionDate(
-                                        _id,
-                                        index,
-                                        session_dates
-                                      )
+                                      <button
+                                        className="btn btn-sm ml-2"
+                                        onClick={() =>
+                                          handleRemoveSessionDate(
+                                            _id,
+                                            index,
+                                            session_dates
+                                          )
+                                        }
+                                      >
+                                        Remove
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {session_type === "timeslot" && (
+                                <div className="flex">
+                                  <p className="w-32 infoTitle">
+                                    Timeslot Vacancy:
+                                  </p>
+                                  <input
+                                    name="vacancy_timeslot"
+                                    value={vacancy_timeslot}
+                                    onChange={(e) =>
+                                      handleUpdateSessionEdit(e, _id)
                                     }
-                                  >
-                                    Remove
-                                  </button>
+                                    className="input input-bordered input-sm w-full max-w-xs mb-1"
+                                  />
                                 </div>
-                              );
-                            })}
-                          </div>
-                          {session_type === "timeslot" && (
-                            <div className="flex">
-                              <p className="w-32 infoTitle">
-                                Timeslot Vacancy:
-                              </p>
-                              <input
-                                name="vacancy_timeslot"
-                                value={vacancy_timeslot}
-                                onChange={(e) =>
-                                  handleUpdateSessionEdit(e, _id)
-                                }
-                                className="input input-bordered input-sm w-full max-w-xs mb-1"
-                              />
-                            </div>
-                          )}
-                          <div className="flex">
-                            <p className="w-32 infoTitle">
-                              Participant Vacancy:
-                            </p>
-                            <input
-                              name="vacancy_participant"
-                              value={vacancy_participant}
-                              onChange={(e) => handleUpdateSessionEdit(e, _id)}
-                              className="input input-bordered input-sm w-full max-w-xs mb-1"
-                            />
-                          </div>
-                          <div className="flex">
-                            <p className="w-52 infoTitle">
-                              Number of Enrolled Participant(s):
-                            </p>
-                            <p className="mb-1">{numberOfParticipant}</p>
-                          </div>
-                          <div className="flex">
-                            <p className="w-32 infoTitle">Available Seats:</p>{" "}
-                            <p className="mb-1">N/A</p>
-                          </div>
-                          <div className="flex">
-                            <p className="w-32 infoTitle">Session Notice:</p>
-                            <input
-                              name="session_notice"
-                              value={session_notice}
-                              onChange={(e) => handleUpdateSessionEdit(e, _id)}
-                              className="input input-bordered input-sm w-full max-w-xs mb-1"
-                            />
-                          </div>
-                          <div className="flex">
-                            <div className="flex items-center">
-                              <p className="w-32 infoTitle">Session Id:</p>
-                              <p className="opacity-60">{_id}</p>
-                            </div>
-                            <button
-                              className={"btn btn-accent btn-sm ml-2 mb-3"}
-                              onClick={() => copyToClipboard(_id)}
-                            >
-                              Copy Session Id
-                            </button>
-                          </div>
-                          <div className="relative">
-                            <button
-                              className="btn btn-sm btn-error absolute bottom-3 right-5"
-                              onClick={(e) =>
-                                handleRemoveSession(e, _id, numberOfParticipant)
-                              }
-                            >
-                              Remove Session
-                            </button>
-                          </div>
-                          <div>
-                            {/* {(sessionUpdateSuccess && (
+                              )}
+                              <div className="flex">
+                                <p className="w-32 infoTitle">
+                                  Participant Vacancy:
+                                </p>
+                                <input
+                                  name="vacancy_participant"
+                                  value={vacancy_participant}
+                                  onChange={(e) =>
+                                    handleUpdateSessionEdit(e, _id)
+                                  }
+                                  className="input input-bordered input-sm w-full max-w-xs mb-1"
+                                />
+                              </div>
+                              <div className="flex">
+                                <p className="w-52 infoTitle">
+                                  Number of Enrolled Participant(s):
+                                </p>
+                                <p className="mb-1">{numberOfParticipant}</p>
+                              </div>
+                              <div className="flex">
+                                <p className="w-32 infoTitle">
+                                  Available Seats:
+                                </p>{" "}
+                                <p className="mb-1">N/A</p>
+                              </div>
+                              <div className="flex">
+                                <p className="w-32 infoTitle">
+                                  Session Notice:
+                                </p>
+                                <input
+                                  name="session_notice"
+                                  value={session_notice}
+                                  onChange={(e) =>
+                                    handleUpdateSessionEdit(e, _id)
+                                  }
+                                  className="input input-bordered input-sm w-full max-w-xs mb-1"
+                                />
+                              </div>
+                              <div className="flex">
+                                <div className="flex items-center">
+                                  <p className="w-32 infoTitle">Session Id:</p>
+                                  <p className="opacity-60">{_id}</p>
+                                </div>
+                                <button
+                                  className={"btn btn-accent btn-sm ml-2 mb-3"}
+                                  onClick={() => copyToClipboard(_id)}
+                                >
+                                  Copy Session Id
+                                </button>
+                              </div>
+                              <div className="relative">
+                                <button
+                                  className="btn btn-sm btn-error absolute bottom-3 right-5"
+                                  onClick={(e) =>
+                                    handleRemoveSession(
+                                      e,
+                                      _id,
+                                      numberOfParticipant
+                                    )
+                                  }
+                                >
+                                  Remove Session
+                                </button>
+                              </div>
+                              <div>
+                                {/* {(sessionUpdateSuccess && (
                               <p className="text-green-500">{`${sessionUpdateSuccess}`}</p>
                             )) || */}
-                            {sessionUpdateError && (
-                              <p className="text-red-500">{`${sessionUpdateError}`}</p>
-                            )}
-                          </div>
-                          <hr />
-                        </div>
-                      );
+                                {sessionUpdateError && (
+                                  <p className="text-red-500">{`${sessionUpdateError}`}</p>
+                                )}
+                              </div>
+                              <hr />
+                            </div>
+                          );
+                        }
+                      }
                     }
-                  }
-                }
-              )}
+                  )}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </Fragment>
+      )}
     </>
   );
 };

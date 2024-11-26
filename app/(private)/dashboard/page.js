@@ -3,6 +3,7 @@
 import { useState, useEffect, Fragment } from "react";
 import { Chart as ChartJS, defaults } from "chart.js/auto";
 import { Bar, Doughnut, Line } from "react-chartjs-2";
+import Loading from "@/app/components/Loading";
 
 defaults.plugins.title.display = true;
 defaults.plugins.title.align = "start";
@@ -12,61 +13,68 @@ defaults.responsive = true;
 defaults.maintainAspectRatio = false;
 
 const Dashboard = () => {
-  // Generic
-  const [currentMonth, setCurrentMonth] = useState("--");
-  const [currentMonthRevenue, setCurrentMonthRevenue] = useState("--");
-  const [currentMonthAvgProfit, setCurrentMonthAvgProfit] = useState("--");
-  const [lastMonthAvgProfit, setLastMonthAvgProfit] = useState("--");
-  const [currentMonthAvgProfitFormatted, setCurrentMonthAvgProfitFormatted] =
-    useState("--");
-  const [currentMonthParticipant, setCurrentMonthParticipant] = useState("--");
-  const [
-    currentMonthParticipantFormatted,
-    setCurrentMonthParticipantFormatted,
-  ] = useState("--");
-  const [lastMonthParticipant, setLastMonthParticipant] = useState("--");
-  const [participantData_ProgramNames, setParticipantData_ProgramNames] =
-    useState([["ProgramA", 0]]);
-  const [participantData_ProgramTypes, setParticipantData_ProgramTypes] =
-    useState([["TypeA", 0]]);
-  // console.log("participantData_ProgramNames", participantData_ProgramNames);
-  // console.log("participantData_ProgramTypes", participantData_ProgramTypes);
-  // ALL
   const getCurrentYearMonth = () => {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, "0");
     return `${year}-${month}`;
   };
-  const [yearData, setYearData] = useState([
-    { year_month: getCurrentYearMonth(), total_amount: 0 },
-  ]);
+  const [dashboardData, setDashboardData] = useState({
+    backendMsg: null,
+    currentMonth: "--",
+    currentMonthRevenue: "--",
+    currentMonthAvgProfit: "--",
+    lastMonthAvgProfit: "--",
+    currentMonthParticipant: "--",
+    lastMonthParticipant: "--",
+    currentMonthParticipantFormatted: "--",
+    currentMonthAvgProfitFormatted: "--",
+    selectedMonth: getCurrentYearMonth() || "-- Select Month --",
+    yearData: [{ year_month: getCurrentYearMonth(), total_amount: 0 }],
+    programNames_Amount: [{ year_month: getCurrentYearMonth(), Name: 0 }],
+    programTypes_Amount: [{ year_month: getCurrentYearMonth(), Type: 0 }],
+    participantData_ProgramNames: [["ProgramA", 0]],
+    participantData_ProgramTypes: [["TypeA", 0]],
+    selectedYear_ProgramNames_Amount: "",
+    selectedDataset_ProgramNames_Amount: "All_Programs",
+    selectedYear_ProgramTypes_Amount: "",
+    selectedDataset_ProgramTypes_Amount: "All_Types",
+  });
 
-  // programNames_Amount
-  const [programNames_Amount, setProgramNames_Amount] = useState([
-    { year_month: getCurrentYearMonth(), Name: 0 },
-  ]);
-  const [
-    selectedYear_ProgramNames_Amount,
-    setSelectedYear_ProgramNames_Amount,
-  ] = useState("");
-  const [
-    selectedDataset_ProgramNames_Amount,
-    setSelectedDataset_ProgramNames_Amount,
-  ] = useState("All_Programs"); // 默認顯示收入
+  // 替換原本的 setSelectedYear_ProgramNames_Amount
+  const setSelectedYear_ProgramNames_Amount = (year) => {
+    setDashboardData((prev) => ({
+      ...prev,
+      selectedYear_ProgramNames_Amount: year,
+    }));
+  };
+  const setSelectedYear_ProgramTypes_Amount = (year) => {
+    setDashboardData((prev) => ({
+      ...prev,
+      selectedYear_ProgramTypes_Amount: year,
+    }));
+  };
 
-  // programTypes_Amount
-  const [programTypes_Amount, setProgramTypes_Amount] = useState([
-    { year_month: getCurrentYearMonth(), Type: 0 },
-  ]);
-  const [
-    selectedYear_ProgramTypes_Amount,
-    setSelectedYear_ProgramTypes_Amount,
-  ] = useState("");
-  const [
-    selectedDataset_ProgramTypes_Amount,
-    setSelectedDataset_ProgramTypes_Amount,
-  ] = useState("All_Types"); // 默認顯示收入
+  // 其他 setter 也類似
+  const setSelectedDataset_ProgramNames_Amount = (dataset) => {
+    setDashboardData((prev) => ({
+      ...prev,
+      selectedDataset_ProgramNames_Amount: dataset,
+    }));
+  };
+  const setSelectedDataset_ProgramTypes_Amount = (dataset) => {
+    setDashboardData((prev) => ({
+      ...prev,
+      selectedDataset_ProgramTypes_Amount: dataset,
+    }));
+  };
+
+  const setSelectedMonth = (month) => {
+    setDashboardData((prev) => ({
+      ...prev,
+      selectedMonth: month,
+    }));
+  };
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -81,6 +89,9 @@ const Dashboard = () => {
             },
           }
         );
+
+        console.log("result", result);
+
         const revenueDate = await result.json();
 
         const getCurrentYearMonth = () => {
@@ -129,146 +140,146 @@ const Dashboard = () => {
             return revenueData.year_month === getLastYearMonth();
           }
         )[0].total_count;
-        setProgramNames_Amount(
-          revenueDate.resultGroupedByYearMonth_programNames
-        );
-        setProgramTypes_Amount(
-          revenueDate.resultGroupedByYearMonth_programTypes
-        );
-        // console.log(
-        //   "revenueDate.resultGroupedByYearMonth",
-        //   revenueDate.resultGroupedByYearMonth
-        // );
-        // setYearData(revenueDate.resultGroupedByYearMonth);
-        setYearData([
-          ...revenueDate.resultGroupedByYearMonth,
-          {
-            year_month: "2022-01",
-            total_amount: 1000,
-            total_count: 5,
-          },
-          {
-            year_month: "2022-02",
-            total_amount: 1800,
-            total_count: 3,
-          },
-          {
-            year_month: "2022-03",
-            total_amount: 2200,
-            total_count: 4,
-          },
-          {
-            year_month: "2022-04",
-            total_amount: 1500,
-            total_count: 6,
-          },
-          {
-            year_month: "2022-05",
-            total_amount: 1700,
-            total_count: 2,
-          },
-          {
-            year_month: "2022-06",
-            total_amount: 2000,
-            total_count: 4,
-          },
-          {
-            year_month: "2022-07",
-            total_amount: 1300,
-            total_count: 5,
-          },
-          {
-            year_month: "2022-09",
-            total_amount: 2400,
-            total_count: 7,
-          },
-          {
-            year_month: "2022-10",
-            total_amount: 1600,
-            total_count: 3,
-          },
-          {
-            year_month: "2022-12",
-            total_amount: 2500,
-            total_count: 8,
-          },
-          {
-            year_month: "2023-01",
-            total_amount: 1800,
-            total_count: 6,
-          },
-          {
-            year_month: "2023-02",
-            total_amount: 2100,
-            total_count: 5,
-          },
-          {
-            year_month: "2023-03",
-            total_amount: 2500,
-            total_count: 7,
-          },
-          {
-            year_month: "2023-04",
-            total_amount: 2300,
-            total_count: 4,
-          },
-          {
-            year_month: "2023-05",
-            total_amount: 2700,
-            total_count: 6,
-          },
-          {
-            year_month: "2023-06",
-            total_amount: 2900,
-            total_count: 5,
-          },
-          {
-            year_month: "2023-07",
-            total_amount: 3200,
-            total_count: 8,
-          },
-          {
-            year_month: "2023-08",
-            total_amount: 3500,
-            total_count: 9,
-          },
-          {
-            year_month: "2023-09",
-            total_amount: 3700,
-            total_count: 10,
-          },
-          {
-            year_month: "2023-10",
-            total_amount: 4000,
-            total_count: 11,
-          },
-          {
-            year_month: "2023-11",
-            total_amount: 4200,
-            total_count: 12,
-          },
-          {
-            year_month: "2023-12",
-            total_amount: 4500,
-            total_count: 13,
-          },
-        ]);
-        setParticipantData_ProgramNames(
-          revenueDate.resultGroupedByYearMonth_programNames_participantArray
-        );
-        setParticipantData_ProgramTypes(
-          revenueDate.resultGroupedByYearMonth_programTypes_participantArray
-        );
-        setCurrentMonth(formatYearMonth(getCurrentYearMonth()));
-        setCurrentMonthParticipantFormatted(formatNumber(currMonthParti));
-        setCurrentMonthRevenue(formatNumber(currMonthRevenue));
-        setCurrentMonthParticipant(currMonthParti);
-        setLastMonthParticipant(lastMonthParti);
-        setCurrentMonthAvgProfit(currMonthRevenue / currMonthParti);
-        setLastMonthAvgProfit(lastMonthRevenue / lastMonthParti);
-        setCurrentMonthAvgProfitFormatted(
-          formatNumber(Math.floor(currMonthRevenue / currMonthParti))
-        );
+
+        setDashboardData((prevState) => ({
+          ...prevState,
+          backendMsg: true,
+          currentMonth: formatYearMonth(getCurrentYearMonth()),
+          currentMonthRevenue: formatNumber(currMonthRevenue),
+          currentMonthAvgProfit: formatNumber(
+            Math.floor(currMonthRevenue / currMonthParti)
+          ),
+          lastMonthAvgProfit: formatNumber(
+            Math.floor(lastMonthRevenue / lastMonthParti)
+          ),
+          currentMonthParticipant: currMonthParti,
+          lastMonthParticipant: lastMonthParti,
+          yearData: [
+            ...revenueDate.resultGroupedByYearMonth,
+            {
+              year_month: "2022-01",
+              total_amount: 1000,
+              total_count: 5,
+            },
+            {
+              year_month: "2022-02",
+              total_amount: 1800,
+              total_count: 3,
+            },
+            {
+              year_month: "2022-03",
+              total_amount: 2200,
+              total_count: 4,
+            },
+            {
+              year_month: "2022-04",
+              total_amount: 1500,
+              total_count: 6,
+            },
+            {
+              year_month: "2022-05",
+              total_amount: 1700,
+              total_count: 2,
+            },
+            {
+              year_month: "2022-06",
+              total_amount: 2000,
+              total_count: 4,
+            },
+            {
+              year_month: "2022-07",
+              total_amount: 1300,
+              total_count: 5,
+            },
+            {
+              year_month: "2022-09",
+              total_amount: 2400,
+              total_count: 7,
+            },
+            {
+              year_month: "2022-10",
+              total_amount: 1600,
+              total_count: 3,
+            },
+            {
+              year_month: "2022-12",
+              total_amount: 2500,
+              total_count: 8,
+            },
+            {
+              year_month: "2023-01",
+              total_amount: 1800,
+              total_count: 6,
+            },
+            {
+              year_month: "2023-02",
+              total_amount: 2100,
+              total_count: 5,
+            },
+            {
+              year_month: "2023-03",
+              total_amount: 2500,
+              total_count: 7,
+            },
+            {
+              year_month: "2023-04",
+              total_amount: 2300,
+              total_count: 4,
+            },
+            {
+              year_month: "2023-05",
+              total_amount: 2700,
+              total_count: 6,
+            },
+            {
+              year_month: "2023-06",
+              total_amount: 2900,
+              total_count: 5,
+            },
+            {
+              year_month: "2023-07",
+              total_amount: 3200,
+              total_count: 8,
+            },
+            {
+              year_month: "2023-08",
+              total_amount: 3500,
+              total_count: 9,
+            },
+            {
+              year_month: "2023-09",
+              total_amount: 3700,
+              total_count: 10,
+            },
+            {
+              year_month: "2023-10",
+              total_amount: 4000,
+              total_count: 11,
+            },
+            {
+              year_month: "2023-11",
+              total_amount: 4200,
+              total_count: 12,
+            },
+            {
+              year_month: "2023-12",
+              total_amount: 4500,
+              total_count: 13,
+            },
+          ],
+          programNames_Amount:
+            revenueDate.resultGroupedByYearMonth_programNames,
+          programTypes_Amount:
+            revenueDate.resultGroupedByYearMonth_programTypes,
+          participantData_ProgramNames:
+            revenueDate.resultGroupedByYearMonth_programNames_participantArray,
+          participantData_ProgramTypes:
+            revenueDate.resultGroupedByYearMonth_programTypes_participantArray,
+          currentMonthParticipantFormatted: formatNumber(currMonthParti),
+          currentMonthAvgProfitFormatted: formatNumber(
+            Math.floor(currMonthRevenue / currMonthParti)
+          ),
+        }));
       } catch (err) {
         console.log("Fetch Stats Error");
         console.log(err);
@@ -277,20 +288,29 @@ const Dashboard = () => {
     fetchProfileData();
   }, []);
 
+  if (!dashboardData.backendMsg) {
+    return <Loading />;
+  }
+
   // ProgramNames Amount Starts
-  const years_ProgramNames_Amount = programNames_Amount
+  const years_ProgramNames_Amount = dashboardData.programNames_Amount
     ? [
         ...new Set(
-          programNames_Amount.map((data) => data.year_month.split("-")[0])
+          dashboardData.programNames_Amount.map(
+            (data) => data.year_month.split("-")[0]
+          )
         ),
       ]
     : [];
 
-  const filteredData_ProgramNames_Amount = selectedYear_ProgramNames_Amount
-    ? programNames_Amount.filter((data) =>
-        data.year_month.startsWith(selectedYear_ProgramNames_Amount)
-      )
-    : programNames_Amount;
+  const filteredData_ProgramNames_Amount =
+    dashboardData.selectedYear_ProgramNames_Amount
+      ? dashboardData.programNames_Amount.filter((data) =>
+          data.year_month.startsWith(
+            dashboardData.selectedYear_ProgramNames_Amount
+          )
+        )
+      : dashboardData.programNames_Amount;
 
   const datas_ProgramNames_Amount = filteredData_ProgramNames_Amount
     ? [
@@ -305,19 +325,24 @@ const Dashboard = () => {
   // ProgramNames Amount Ends
 
   // ProgramTypes Amount Starts
-  const years_ProgramTypes_Amount = programTypes_Amount
+  const years_ProgramTypes_Amount = dashboardData.programTypes_Amount
     ? [
         ...new Set(
-          programTypes_Amount.map((data) => data.year_month.split("-")[0])
+          dashboardData.programTypes_Amount.map(
+            (data) => data.year_month.split("-")[0]
+          )
         ),
       ]
     : [];
 
-  const filteredData_ProgramTypes_Amount = selectedYear_ProgramTypes_Amount
-    ? programTypes_Amount.filter((data) =>
-        data.year_month.startsWith(selectedYear_ProgramTypes_Amount)
-      )
-    : programTypes_Amount;
+  const filteredData_ProgramTypes_Amount =
+    dashboardData.selectedYear_ProgramTypes_Amount
+      ? dashboardData.programTypes_Amount.filter((data) =>
+          data.year_month.startsWith(
+            dashboardData.selectedYear_ProgramTypes_Amount
+          )
+        )
+      : dashboardData.programTypes_Amount;
 
   const datas_ProgramTypes_Amount = filteredData_ProgramTypes_Amount
     ? [
@@ -331,14 +356,9 @@ const Dashboard = () => {
 
   // ProgramTypes Amount Ends
 
-  // Pie Chart Data Preparation
-  const [selectedMonth, setSelectedMonth] = useState(
-    getCurrentYearMonth() || "-- Select Month --"
-  );
-
-  const pieData_ProgramNames_Amount = programNames_Amount
-    ? programNames_Amount
-        .filter((data) => data.year_month === selectedMonth)
+  const pieData_ProgramNames_Amount = dashboardData.programNames_Amount
+    ? dashboardData.programNames_Amount
+        .filter((data) => data.year_month === dashboardData.selectedMonth)
         .map((data) =>
           Object.entries(data).filter(
             ([key]) => key !== "year_month" && key !== "All_Programs"
@@ -346,9 +366,9 @@ const Dashboard = () => {
         )
         .flat()
     : [["ProgramA", 0]];
-  const pieData_ProgramTypes_Amount = programTypes_Amount
-    ? programTypes_Amount
-        .filter((data) => data.year_month === selectedMonth)
+  const pieData_ProgramTypes_Amount = dashboardData.programTypes_Amount
+    ? dashboardData.programTypes_Amount
+        .filter((data) => data.year_month === dashboardData.selectedMonth)
         .map((data) =>
           Object.entries(data).filter(
             ([key]) => key !== "year_month" && key !== "All_Types"
@@ -358,13 +378,21 @@ const Dashboard = () => {
     : [["TypeA", 0]];
 
   const copmareMonthParti =
-    currentMonthParticipant - lastMonthParticipant || "--";
+    dashboardData.currentMonthParticipant -
+      dashboardData.lastMonthParticipant || "--";
   const compareMonthPartiPercent =
-    (currentMonthParticipant / lastMonthParticipant - 1) * 100 || "--";
+    (dashboardData.currentMonthParticipant /
+      dashboardData.lastMonthParticipant -
+      1) *
+      100 || "--";
   const compareMonthAvgProfit =
-    Math.floor(currentMonthAvgProfit - lastMonthAvgProfit) || "--";
+    Math.floor(
+      dashboardData.currentMonthAvgProfit - dashboardData.lastMonthAvgProfit
+    ) || "--";
   const compareMonthAvgProfitPercent =
-    Math.floor(currentMonthAvgProfit / lastMonthAvgProfit - 1) * 100 || "--";
+    Math.floor(
+      dashboardData.currentMonthAvgProfit / dashboardData.lastMonthAvgProfit - 1
+    ) * 100 || "--";
 
   return (
     <>
@@ -374,13 +402,15 @@ const Dashboard = () => {
           <div className="mt-12 mb-4 stats stats-vertical lg:stats-horizontal shadow-md w-11/12 ">
             <div className="stat">
               <div className="stat-title">Month's profits</div>
-              <div className="stat-value">${currentMonthRevenue}</div>
-              <div className="stat-desc">{currentMonth}</div>
+              <div className="stat-value">
+                ${dashboardData.currentMonthRevenue}
+              </div>
+              <div className="stat-desc">{dashboardData.currentMonth}</div>
             </div>
             <div className="stat">
               <div className="stat-title">Month's Participants</div>
               <div className="stat-value">
-                {currentMonthParticipantFormatted}
+                {dashboardData.currentMonthParticipantFormatted}
               </div>
               <div className="stat-desc">
                 {copmareMonthParti >= 0 ? (
@@ -401,7 +431,7 @@ const Dashboard = () => {
             <div className="stat">
               <div className="stat-title">Average Profit per Participant</div>
               <div className="stat-value">
-                ${currentMonthAvgProfitFormatted}
+                ${dashboardData.currentMonthAvgProfitFormatted}
               </div>
               <div className="stat-desc">
                 {compareMonthAvgProfit >= 0 ? (
@@ -449,7 +479,7 @@ const Dashboard = () => {
                       {
                         // Current Year
                         label: new Date().getFullYear(),
-                        data: yearData
+                        data: dashboardData.yearData
                           .filter((year) =>
                             year.year_month.startsWith(new Date().getFullYear())
                           )
@@ -459,7 +489,7 @@ const Dashboard = () => {
                       {
                         // Current Year - 1
                         label: new Date().getFullYear() - 1,
-                        data: yearData
+                        data: dashboardData.yearData
                           .filter((year) =>
                             year.year_month.startsWith(
                               new Date().getFullYear() - 1
@@ -471,7 +501,7 @@ const Dashboard = () => {
                       {
                         // Current Year - 2
                         label: new Date().getFullYear() - 2,
-                        data: yearData
+                        data: dashboardData.yearData
                           .filter((year) =>
                             year.year_month.startsWith(
                               new Date().getFullYear() - 2
@@ -500,7 +530,7 @@ const Dashboard = () => {
           </div>
           {/*-------------------------------- All Programs - Participants --------------------------------*/}
           <div className="flex flex-col items-center min-h-56 w-5/12 bg-base-100 p-4 rounded-2xl shadow-md">
-            {yearData && (
+            {dashboardData.yearData && (
               <>
                 <div className="w-11/12 min-h-56">
                   <Line
@@ -524,7 +554,7 @@ const Dashboard = () => {
                         {
                           // Current Year
                           label: new Date().getFullYear(),
-                          data: yearData
+                          data: dashboardData.yearData
                             .filter((year) =>
                               year.year_month.startsWith(
                                 new Date().getFullYear()
@@ -536,7 +566,7 @@ const Dashboard = () => {
                         {
                           // Current Year - 1
                           label: new Date().getFullYear() - 1,
-                          data: yearData
+                          data: dashboardData.yearData
                             .filter((year) =>
                               year.year_month.startsWith(
                                 new Date().getFullYear() - 1
@@ -548,7 +578,7 @@ const Dashboard = () => {
                         {
                           // Current Year - 2
                           label: new Date().getFullYear() - 2,
-                          data: yearData
+                          data: dashboardData.yearData
                             .filter((year) =>
                               year.year_month.startsWith(
                                 new Date().getFullYear() - 2
@@ -586,7 +616,7 @@ const Dashboard = () => {
         <div className="flex justify-around bg-base-200 p-4 rounded-2xl w-11/12 mb-4 shadow-md">
           {/*-------------------------------- programNames Amount & Participant Number --------------------------------*/}
           <div className="flex flex-col items-center min-h-64 w-5/12 bg-base-100 p-4 rounded-2xl shadow-md">
-            {programNames_Amount && (
+            {dashboardData.programNames_Amount && (
               <>
                 {/* select */}
                 <div className="flex justify-between w-4/6">
@@ -596,7 +626,7 @@ const Dashboard = () => {
                     onChange={(e) =>
                       setSelectedYear_ProgramNames_Amount(e.target.value)
                     }
-                    value={selectedYear_ProgramNames_Amount}
+                    value={dashboardData.selectedYear_ProgramNames_Amount}
                     className="select select-bordered w-2/5 overflow-y-auto max-w-xs max-h-[200px] select-sm"
                   >
                     <option value="">All Years</option>
@@ -613,7 +643,7 @@ const Dashboard = () => {
                     onChange={(e) =>
                       setSelectedDataset_ProgramNames_Amount(e.target.value)
                     }
-                    value={selectedDataset_ProgramNames_Amount}
+                    value={dashboardData.selectedDataset_ProgramNames_Amount}
                     className="select select-bordered w-3/5 overflow-y-auto max-w-xs max-h-[200px] select-sm"
                   >
                     {datas_ProgramNames_Amount.toSorted().map((data) => (
@@ -634,7 +664,11 @@ const Dashboard = () => {
                         {
                           label: "Profits (HKD)",
                           data: filteredData_ProgramNames_Amount.map(
-                            (data) => data[selectedDataset_ProgramNames_Amount]
+                            (data) =>
+                              data[
+                                dashboardData
+                                  .selectedDataset_ProgramNames_Amount
+                              ]
                           ),
                           borderRadius: 5,
                         },
@@ -645,14 +679,15 @@ const Dashboard = () => {
                         title: {
                           display: true,
                           text: `${
-                            selectedYear_ProgramNames_Amount === ""
+                            dashboardData.selectedYear_ProgramNames_Amount ===
+                            ""
                               ? "All Years"
-                              : selectedYear_ProgramNames_Amount
+                              : dashboardData.selectedYear_ProgramNames_Amount
                           } - ${
-                            selectedDataset_ProgramNames_Amount ===
+                            dashboardData.selectedDataset_ProgramNames_Amount ===
                             "All_Programs"
                               ? "All Programs"
-                              : selectedDataset_ProgramNames_Amount
+                              : dashboardData.selectedDataset_ProgramNames_Amount
                           }`,
                           align: "center",
                           padding: {
@@ -668,7 +703,7 @@ const Dashboard = () => {
           </div>
           {/*-------------------------------- programTypes Amount  & Participant Number--------------------------------*/}
           <div className="flex flex-col items-center min-h-64 w-5/12 bg-base-100 p-4 rounded-2xl shadow-md">
-            {programTypes_Amount && (
+            {dashboardData.programTypes_Amount && (
               <>
                 {/* select */}
                 <div className="flex justify-between w-4/6">
@@ -678,7 +713,7 @@ const Dashboard = () => {
                     onChange={(e) =>
                       setSelectedYear_ProgramTypes_Amount(e.target.value)
                     }
-                    value={selectedYear_ProgramTypes_Amount}
+                    value={dashboardData.selectedYear_ProgramTypes_Amount}
                     className="select select-bordered w-2/5 overflow-y-auto max-w-xs max-h-[200px] select-sm"
                   >
                     <option value="">All Years</option>
@@ -695,7 +730,7 @@ const Dashboard = () => {
                     onChange={(e) =>
                       setSelectedDataset_ProgramTypes_Amount(e.target.value)
                     }
-                    value={selectedDataset_ProgramTypes_Amount}
+                    value={dashboardData.selectedDataset_ProgramTypes_Amount}
                     className="select select-bordered w-3/5 overflow-y-auto max-w-xs max-h-[200px] select-sm"
                   >
                     {datas_ProgramTypes_Amount.toSorted().map((data) => (
@@ -716,7 +751,11 @@ const Dashboard = () => {
                         {
                           label: "Profits (HKD)",
                           data: filteredData_ProgramTypes_Amount.map(
-                            (data) => data[selectedDataset_ProgramTypes_Amount]
+                            (data) =>
+                              data[
+                                dashboardData
+                                  .selectedDataset_ProgramTypes_Amount
+                              ]
                           ),
                           borderRadius: 5,
                         },
@@ -727,13 +766,15 @@ const Dashboard = () => {
                         title: {
                           display: true,
                           text: `${
-                            selectedYear_ProgramTypes_Amount === ""
+                            dashboardData.selectedYear_ProgramTypes_Amount ===
+                            ""
                               ? "All Years"
-                              : selectedYear_ProgramTypes_Amount
+                              : dashboardData.selectedYear_ProgramTypes_Amount
                           } - ${
-                            selectedDataset_ProgramTypes_Amount === "All_Types"
+                            dashboardData.selectedDataset_ProgramTypes_Amount ===
+                            "All_Types"
                               ? "All Types"
-                              : selectedDataset_ProgramTypes_Amount
+                              : dashboardData.selectedDataset_ProgramTypes_Amount
                           }`,
                           align: "center",
                           padding: {
@@ -762,14 +803,16 @@ const Dashboard = () => {
               <select
                 id="month-select"
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                value={selectedMonth}
+                value={dashboardData.selectedMonth}
                 className="select select-bordered w-1/5 overflow-y-auto max-w-xs max-h-[200px] select-sm"
               >
                 {/* <option value="">-- Select Month --</option> */}
-                {programNames_Amount &&
+                {dashboardData.programNames_Amount &&
                   [
                     ...new Set(
-                      programNames_Amount.map((data) => data.year_month)
+                      dashboardData.programNames_Amount.map(
+                        (data) => data.year_month
+                      )
                     ),
                   ].map((month) => (
                     <option key={month} value={month}>
@@ -780,187 +823,205 @@ const Dashboard = () => {
             </div>
             {/* Monthly Data Breakdown (ProgramNames & ProgramTypes) - Amount */}
             <div className="flex justify-around w-full mb-4">
-              {selectedMonth && pieData_ProgramNames_Amount.length > 0 && (
-                <div className="min-h-64 w-5/12 bg-base-100 p-4 rounded-2xl shadow-md">
-                  <Doughnut
-                    data={{
-                      labels: pieData_ProgramNames_Amount.map(
-                        ([label]) => label
-                      ),
-                      datasets: [
-                        {
-                          label: "Profits (HKD)",
-                          data: pieData_ProgramNames_Amount.map(
-                            ([, value]) => value
-                          ),
-                          backgroundColor: [
-                            "#FF6384", // Pink
-                            "#36A2EB", // Blue
-                            "#FFCE56", // Yellow
-                            "#4BC0C0", // Teal
-                            "#9966FF", // Purple
-                            "#FF9F40", // Orange
-                            "#4DFFB8", // Mint Green
-                            "#FF6B9E", // Soft Pink
-                          ],
+              {dashboardData.selectedMonth &&
+                pieData_ProgramNames_Amount.length > 0 && (
+                  <div className="min-h-64 w-5/12 bg-base-100 p-4 rounded-2xl shadow-md">
+                    <Doughnut
+                      data={{
+                        labels: pieData_ProgramNames_Amount.map(
+                          ([label]) => label
+                        ),
+                        datasets: [
+                          {
+                            label: "Profits (HKD)",
+                            data: pieData_ProgramNames_Amount.map(
+                              ([, value]) => value
+                            ),
+                            backgroundColor: [
+                              "#FF6384", // Pink
+                              "#36A2EB", // Blue
+                              "#FFCE56", // Yellow
+                              "#4BC0C0", // Teal
+                              "#9966FF", // Purple
+                              "#FF9F40", // Orange
+                              "#4DFFB8", // Mint Green
+                              "#FF6B9E", // Soft Pink
+                            ],
+                          },
+                        ],
+                      }}
+                      options={{
+                        plugins: {
+                          title: {
+                            display: true,
+                            text: `Profits by Program`,
+                            align: "center",
+                          },
                         },
-                      ],
-                    }}
-                    options={{
-                      plugins: {
-                        title: {
-                          display: true,
-                          text: `Profits by Program`,
-                          align: "center",
+                      }}
+                    />
+                  </div>
+                )}
+              {dashboardData.selectedMonth &&
+                pieData_ProgramTypes_Amount.length > 0 && (
+                  <div className="min-h-64 w-5/12 bg-base-100 p-4 rounded-2xl shadow-md">
+                    <Doughnut
+                      data={{
+                        labels: pieData_ProgramTypes_Amount.map(
+                          ([label]) => label
+                        ),
+                        datasets: [
+                          {
+                            label: "Profits",
+                            data: pieData_ProgramTypes_Amount.map(
+                              ([, value]) => value
+                            ),
+                            backgroundColor: [
+                              "#FF6384", // Pink
+                              "#36A2EB", // Blue
+                              "#FFCE56", // Yellow
+                              "#4BC0C0", // Teal
+                              "#9966FF", // Purple
+                              "#FF9F40", // Orange
+                              "#4DFFB8", // Mint Green
+                              "#FF6B9E", // Soft Pink
+                            ],
+                          },
+                        ],
+                      }}
+                      options={{
+                        plugins: {
+                          title: {
+                            display: true,
+                            text: `Profit by Type`,
+                            align: "center",
+                          },
                         },
-                      },
-                    }}
-                  />
-                </div>
-              )}
-              {selectedMonth && pieData_ProgramTypes_Amount.length > 0 && (
-                <div className="min-h-64 w-5/12 bg-base-100 p-4 rounded-2xl shadow-md">
-                  <Doughnut
-                    data={{
-                      labels: pieData_ProgramTypes_Amount.map(
-                        ([label]) => label
-                      ),
-                      datasets: [
-                        {
-                          label: "Profits",
-                          data: pieData_ProgramTypes_Amount.map(
-                            ([, value]) => value
-                          ),
-                          backgroundColor: [
-                            "#FF6384", // Pink
-                            "#36A2EB", // Blue
-                            "#FFCE56", // Yellow
-                            "#4BC0C0", // Teal
-                            "#9966FF", // Purple
-                            "#FF9F40", // Orange
-                            "#4DFFB8", // Mint Green
-                            "#FF6B9E", // Soft Pink
-                          ],
-                        },
-                      ],
-                    }}
-                    options={{
-                      plugins: {
-                        title: {
-                          display: true,
-                          text: `Profit by Type`,
-                          align: "center",
-                        },
-                      },
-                    }}
-                  />
-                </div>
-              )}
+                      }}
+                    />
+                  </div>
+                )}
             </div>
             {/* Monthly Data Breakdown (ProgramNames & ProgramTypes) - Participant */}
             <div className="flex  justify-around w-full">
-              {selectedMonth && participantData_ProgramNames.length > 0 && (
-                <div className="min-h-64 w-5/12 bg-base-100 p-4 rounded-2xl shadow-md">
-                  <Doughnut
-                    data={{
-                      labels: participantData_ProgramNames
-                        .filter((data) => data.year_month === selectedMonth)
-                        .map((data) =>
-                          Object.entries(data).filter(
-                            ([key]) => key !== "year_month"
+              {dashboardData.selectedMonth &&
+                dashboardData.participantData_ProgramNames.length > 0 && (
+                  <div className="min-h-64 w-5/12 bg-base-100 p-4 rounded-2xl shadow-md">
+                    <Doughnut
+                      data={{
+                        labels: dashboardData.participantData_ProgramNames
+                          .filter(
+                            (data) =>
+                              data.year_month === dashboardData.selectedMonth
                           )
-                        )
-                        .flat()
-                        .map(([label]) => label),
-                      datasets: [
-                        {
-                          label: "Participants",
-                          data: participantData_ProgramNames
-                            .filter((data) => data.year_month === selectedMonth)
-                            .map((data) =>
-                              Object.entries(data).filter(
-                                ([key]) => key !== "year_month"
-                              )
+                          .map((data) =>
+                            Object.entries(data).filter(
+                              ([key]) => key !== "year_month"
                             )
-                            .flat()
-                            .map(([, value]) => value),
-                          backgroundColor: [
-                            "#FF6384", // Pink
-                            "#36A2EB", // Blue
-                            "#FFCE56", // Yellow
-                            "#4BC0C0", // Teal
-                            "#9966FF", // Purple
-                            "#FF9F40", // Orange
-                            "#4DFFB8", // Mint Green
-                            "#FF6B9E", // Soft Pink
-                          ],
+                          )
+                          .flat()
+                          .map(([label]) => label),
+                        datasets: [
+                          {
+                            label: "Participants",
+                            data: dashboardData.participantData_ProgramNames
+                              .filter(
+                                (data) =>
+                                  data.year_month ===
+                                  dashboardData.selectedMonth
+                              )
+                              .map((data) =>
+                                Object.entries(data).filter(
+                                  ([key]) => key !== "year_month"
+                                )
+                              )
+                              .flat()
+                              .map(([, value]) => value),
+                            backgroundColor: [
+                              "#FF6384", // Pink
+                              "#36A2EB", // Blue
+                              "#FFCE56", // Yellow
+                              "#4BC0C0", // Teal
+                              "#9966FF", // Purple
+                              "#FF9F40", // Orange
+                              "#4DFFB8", // Mint Green
+                              "#FF6B9E", // Soft Pink
+                            ],
+                          },
+                        ],
+                      }}
+                      options={{
+                        plugins: {
+                          title: {
+                            display: true,
+                            text: `Participants by Program`,
+                            align: "center",
+                          },
                         },
-                      ],
-                    }}
-                    options={{
-                      plugins: {
-                        title: {
-                          display: true,
-                          text: `Participants by Program`,
-                          align: "center",
-                        },
-                      },
-                    }}
-                  />
-                </div>
-              )}
+                      }}
+                    />
+                  </div>
+                )}
 
               {/* 新的 Doughnut Chart for Participants - Program Types */}
-              {selectedMonth && participantData_ProgramTypes.length > 0 && (
-                <div className="min-h-64 w-5/12 bg-base-100 p-4 rounded-2xl shadow-md">
-                  <Doughnut
-                    data={{
-                      labels: participantData_ProgramTypes
-                        .filter((data) => data.year_month === selectedMonth)
-                        .map((data) =>
-                          Object.entries(data).filter(
-                            ([key]) => key !== "year_month"
+              {dashboardData.selectedMonth &&
+                dashboardData.participantData_ProgramTypes.length > 0 && (
+                  <div className="min-h-64 w-5/12 bg-base-100 p-4 rounded-2xl shadow-md">
+                    <Doughnut
+                      data={{
+                        labels: dashboardData.participantData_ProgramTypes
+                          .filter(
+                            (data) =>
+                              data.year_month === dashboardData.selectedMonth
                           )
-                        )
-                        .flat()
-                        .map(([label]) => label),
-                      datasets: [
-                        {
-                          label: "Participants",
-                          data: participantData_ProgramTypes
-                            .filter((data) => data.year_month === selectedMonth)
-                            .map((data) =>
-                              Object.entries(data).filter(
-                                ([key]) => key !== "year_month"
-                              )
+                          .map((data) =>
+                            Object.entries(data).filter(
+                              ([key]) => key !== "year_month"
                             )
-                            .flat()
-                            .map(([, value]) => value),
-                          backgroundColor: [
-                            "#FF6384", // Pink
-                            "#36A2EB", // Blue
-                            "#FFCE56", // Yellow
-                            "#4BC0C0", // Teal
-                            "#9966FF", // Purple
-                            "#FF9F40", // Orange
-                            "#4DFFB8", // Mint Green
-                            "#FF6B9E", // Soft Pink
-                          ],
+                          )
+                          .flat()
+                          .map(([label]) => label),
+                        datasets: [
+                          {
+                            label: "Participants",
+                            data: dashboardData.participantData_ProgramTypes
+                              .filter(
+                                (data) =>
+                                  data.year_month ===
+                                  dashboardData.selectedMonth
+                              )
+                              .map((data) =>
+                                Object.entries(data).filter(
+                                  ([key]) => key !== "year_month"
+                                )
+                              )
+                              .flat()
+                              .map(([, value]) => value),
+                            backgroundColor: [
+                              "#FF6384", // Pink
+                              "#36A2EB", // Blue
+                              "#FFCE56", // Yellow
+                              "#4BC0C0", // Teal
+                              "#9966FF", // Purple
+                              "#FF9F40", // Orange
+                              "#4DFFB8", // Mint Green
+                              "#FF6B9E", // Soft Pink
+                            ],
+                          },
+                        ],
+                      }}
+                      options={{
+                        plugins: {
+                          title: {
+                            display: true,
+                            text: `Participants by Type`,
+                            align: "center",
+                          },
                         },
-                      ],
-                    }}
-                    options={{
-                      plugins: {
-                        title: {
-                          display: true,
-                          text: `Participants by Type`,
-                          align: "center",
-                        },
-                      },
-                    }}
-                  />
-                </div>
-              )}
+                      }}
+                    />
+                  </div>
+                )}
             </div>
           </div>
         </div>

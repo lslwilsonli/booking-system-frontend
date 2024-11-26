@@ -580,7 +580,7 @@ const Payment = () => {
         const result = await res.json();
         setData(result);
         setIsLoading(false);
-        console.log(result);
+        // console.log(result);
       } else {
         console.log("Fail");
       }
