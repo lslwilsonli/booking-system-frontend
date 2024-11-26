@@ -234,9 +234,11 @@ const Participant = () => {
 
       const participantsData = await result.json();
       console.log("participantsData fetched");
+      console.log("participantsData", participantsData);
       setParticipants(participantsData);
     } catch (err) {
       console.log(`participantsData ${err}`);
+      console.log("result.message", result.message);
       throw new Error("Failed Token");
     }
   }

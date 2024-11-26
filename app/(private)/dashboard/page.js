@@ -135,7 +135,124 @@ const Dashboard = () => {
         setProgramTypes_Amount(
           revenueDate.resultGroupedByYearMonth_programTypes
         );
-        setYearData(revenueDate.resultGroupedByYearMonth);
+        // console.log(
+        //   "revenueDate.resultGroupedByYearMonth",
+        //   revenueDate.resultGroupedByYearMonth
+        // );
+        // setYearData(revenueDate.resultGroupedByYearMonth);
+        setYearData([
+          ...revenueDate.resultGroupedByYearMonth,
+          {
+            year_month: "2022-01",
+            total_amount: 1000,
+            total_count: 5,
+          },
+          {
+            year_month: "2022-02",
+            total_amount: 1800,
+            total_count: 3,
+          },
+          {
+            year_month: "2022-03",
+            total_amount: 2200,
+            total_count: 4,
+          },
+          {
+            year_month: "2022-04",
+            total_amount: 1500,
+            total_count: 6,
+          },
+          {
+            year_month: "2022-05",
+            total_amount: 1700,
+            total_count: 2,
+          },
+          {
+            year_month: "2022-06",
+            total_amount: 2000,
+            total_count: 4,
+          },
+          {
+            year_month: "2022-07",
+            total_amount: 1300,
+            total_count: 5,
+          },
+          {
+            year_month: "2022-09",
+            total_amount: 2400,
+            total_count: 7,
+          },
+          {
+            year_month: "2022-10",
+            total_amount: 1600,
+            total_count: 3,
+          },
+          {
+            year_month: "2022-12",
+            total_amount: 2500,
+            total_count: 8,
+          },
+          {
+            year_month: "2023-01",
+            total_amount: 1800,
+            total_count: 6,
+          },
+          {
+            year_month: "2023-02",
+            total_amount: 2100,
+            total_count: 5,
+          },
+          {
+            year_month: "2023-03",
+            total_amount: 2500,
+            total_count: 7,
+          },
+          {
+            year_month: "2023-04",
+            total_amount: 2300,
+            total_count: 4,
+          },
+          {
+            year_month: "2023-05",
+            total_amount: 2700,
+            total_count: 6,
+          },
+          {
+            year_month: "2023-06",
+            total_amount: 2900,
+            total_count: 5,
+          },
+          {
+            year_month: "2023-07",
+            total_amount: 3200,
+            total_count: 8,
+          },
+          {
+            year_month: "2023-08",
+            total_amount: 3500,
+            total_count: 9,
+          },
+          {
+            year_month: "2023-09",
+            total_amount: 3700,
+            total_count: 10,
+          },
+          {
+            year_month: "2023-10",
+            total_amount: 4000,
+            total_count: 11,
+          },
+          {
+            year_month: "2023-11",
+            total_amount: 4200,
+            total_count: 12,
+          },
+          {
+            year_month: "2023-12",
+            total_amount: 4500,
+            total_count: 13,
+          },
+        ]);
         setParticipantData_ProgramNames(
           revenueDate.resultGroupedByYearMonth_programNames_participantArray
         );
