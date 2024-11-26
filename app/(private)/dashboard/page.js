@@ -14,11 +14,11 @@ defaults.maintainAspectRatio = false;
 const Dashboard = () => {
   // Generic
   const [currentMonth, setCurrentMonth] = useState("--");
-  const [currentMonthRevenue, setCurrentMonthRevenue] = useState(0);
-  const [currentMonthAvgProfit, setCurrentMonthAvgProfit] = useState(0);
-  const [lastMonthAvgProfit, setLastMonthAvgProfit] = useState(0);
+  const [currentMonthRevenue, setCurrentMonthRevenue] = useState("--");
+  const [currentMonthAvgProfit, setCurrentMonthAvgProfit] = useState("--");
+  const [lastMonthAvgProfit, setLastMonthAvgProfit] = useState("--");
   const [currentMonthAvgProfitFormatted, setCurrentMonthAvgProfitFormatted] =
-    useState(0);
+    useState("--");
   const [currentMonthParticipant, setCurrentMonthParticipant] = useState("--");
   const [
     currentMonthParticipantFormatted,
@@ -29,8 +29,8 @@ const Dashboard = () => {
     useState([["ProgramA", 0]]);
   const [participantData_ProgramTypes, setParticipantData_ProgramTypes] =
     useState([["TypeA", 0]]);
-  console.log("participantData_ProgramNames", participantData_ProgramNames);
-  console.log("participantData_ProgramTypes", participantData_ProgramTypes);
+  // console.log("participantData_ProgramNames", participantData_ProgramNames);
+  // console.log("participantData_ProgramTypes", participantData_ProgramTypes);
   // ALL
   const getCurrentYearMonth = () => {
     const now = new Date();
@@ -123,8 +123,11 @@ const Dashboard = () => {
         const currMonthParti = revenueDate.resultGroupedByYearMonth.filter(
           (revenueData) => revenueData.year_month === getCurrentYearMonth()
         )[0].total_count;
+
         const lastMonthParti = revenueDate.resultGroupedByYearMonth.filter(
-          (revenueData) => revenueData.year_month === getLastYearMonth()
+          (revenueData) => {
+            return revenueData.year_month === getLastYearMonth();
+          }
         )[0].total_count;
         setProgramNames_Amount(
           revenueDate.resultGroupedByYearMonth_programNames
@@ -236,8 +239,16 @@ const Dashboard = () => {
         )
         .flat()
     : [["TypeA", 0]];
-  console.log("pieData_ProgramNames_Amount", pieData_ProgramNames_Amount);
-  console.log("pieData_ProgramTypes_Amount", pieData_ProgramTypes_Amount);
+
+  const copmareMonthParti =
+    currentMonthParticipant - lastMonthParticipant || "--";
+  const compareMonthPartiPercent =
+    (currentMonthParticipant / lastMonthParticipant - 1) * 100 || "--";
+  const compareMonthAvgProfit =
+    Math.floor(currentMonthAvgProfit - lastMonthAvgProfit) || "--";
+  const compareMonthAvgProfitPercent =
+    Math.floor(currentMonthAvgProfit / lastMonthAvgProfit - 1) * 100 || "--";
+
   return (
     <>
       <div className="flex flex-col items-center w-full">
@@ -255,20 +266,16 @@ const Dashboard = () => {
                 {currentMonthParticipantFormatted}
               </div>
               <div className="stat-desc">
-                {currentMonthParticipant - lastMonthParticipant >= 0 ? (
+                {copmareMonthParti >= 0 ? (
                   <span className="text-green-500">
-                    ↗︎ {currentMonthParticipant - lastMonthParticipant} (+
-                    {(currentMonthParticipant / lastMonthParticipant - 1) * 100}
+                    ↗︎ {copmareMonthParti} (+
+                    {compareMonthPartiPercent}
                     %)
                   </span>
                 ) : (
                   <span className="text-red-500">
-                    ↘{" "}
-                    {isNaN(currentMonthParticipant - lastMonthParticipant)
-                      ? "--"
-                      : currentMonthParticipant - lastMonthParticipant}{" "}
-                    (
-                    {(currentMonthParticipant / lastMonthParticipant - 1) * 100}
+                    ↘ {isNaN(copmareMonthParti) ? "--" : copmareMonthParti} (
+                    {compareMonthPartiPercent}
                     %)
                   </span>
                 )}
@@ -280,22 +287,14 @@ const Dashboard = () => {
                 ${currentMonthAvgProfitFormatted}
               </div>
               <div className="stat-desc">
-                {currentMonthAvgProfit - lastMonthAvgProfit >= 0 ? (
+                {compareMonthAvgProfit >= 0 ? (
                   <span className="text-green-500">
-                    ↗︎ ${Math.floor(currentMonthAvgProfit - lastMonthAvgProfit)}{" "}
-                    (
-                    {Math.floor(
-                      currentMonthAvgProfit / lastMonthAvgProfit - 1
-                    ) * 100}
+                    ↗︎ ${compareMonthAvgProfit} ({compareMonthAvgProfitPercent}
                     %)
                   </span>
                 ) : (
                   <span className="text-red-500">
-                    ↘ ${Math.floor(currentMonthAvgProfit - lastMonthAvgProfit)}{" "}
-                    (
-                    {Math.floor(
-                      currentMonthAvgProfit / lastMonthAvgProfit - 1
-                    ) * 100}
+                    ↘ ${compareMonthAvgProfit} ({compareMonthAvgProfitPercent}
                     %)
                   </span>
                 )}

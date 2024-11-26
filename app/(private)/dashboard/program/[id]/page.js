@@ -1480,7 +1480,7 @@ const ProgramInfo = () => {
                               );
                             })}
                           </div>
-                          {session_type === "timeslot" && vacancy_timeslot && (
+                          {session_type === "timeslot" && (
                             <div className="flex">
                               <p className="w-32 infoTitle">
                                 Timeslot Vacancy:
