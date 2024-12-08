@@ -381,10 +381,12 @@ const Dashboard = () => {
     dashboardData.currentMonthParticipant -
       dashboardData.lastMonthParticipant || "--";
   const compareMonthPartiPercent =
-    (dashboardData.currentMonthParticipant /
-      dashboardData.lastMonthParticipant -
-      1) *
-      100 || "--";
+    Math.floor(
+      (dashboardData.currentMonthParticipant /
+        dashboardData.lastMonthParticipant -
+        1) *
+        100
+    ) || "--";
   const compareMonthAvgProfit =
     Math.floor(
       dashboardData.currentMonthAvgProfit - dashboardData.lastMonthAvgProfit
